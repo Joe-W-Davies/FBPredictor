@@ -5,7 +5,7 @@ import time
 import argparse
 import yaml
 
-from ScrapeUtils import get_possession_info, get_shooting_info, get_passing_info
+from ScrapeUtils import get_extra_info
 
 
 #scrape 
@@ -17,11 +17,7 @@ def main(options):
         years = config['years']
         league_links = config['league_links']
         match_vars = config['match_vars']
-
-        extra_tables_to_scrape = config['extra_tables_to_scrape']
-        possession_vars = config['possession_vars']
-        passing_vars = config['passing_vars']
-        shooting_vars = config['shooting_vars']
+        extra_tables_name_to_var = config['extra_tables_to_scrape']
 
 
 
@@ -32,7 +28,7 @@ def main(options):
         
             print(f'scraping data from: {year}')
             data = requests.get(web_page)
-            soup = BeautifulSoup(data.text)
+            soup = BeautifulSoup(data.text, 'lxml')
             
             # filter HTML to to get the main standings table (syntax is: html_tag.class)
             league_table = soup.select('table.stats_table')[0] #NOTE: why does this return multiple entries?
@@ -56,48 +52,20 @@ def main(options):
         
                     
                 #get additional stats for a single team
-                #FIXME: you can make the scapers into one function and just change e.g. all "Passing"->"Shooting"
                 #Can also write a yaml linking possesion vars -> [var1, var2, var3, ...]
-        
-                if 'possession' in extra_tables_to_scrape:
+                for extra_table in extra_tables_name_to_var.keys():
                     original_rows = team_data_df.shape[0] 
-                    possession_df = get_possession_info(match_data=match_data)
+                    extra_df = get_extra_info(match_data=match_data, table_type=extra_table)
+                    extra_vars = extra_tables_name_to_var[extra_table]
     
-                    #FIXME: would be nice to join replace with a function since repetitive, but dunno how to return a continue if we got an error!!
                     #Date will be a unique ID for that team since can't play 2 matches in the same day
                     try:
-                        team_data_df = team_data_df.merge(possession_df[possession_vars], on="Date", how='inner')
+                        team_data_df = team_data_df.merge(extra_df[extra_vars], on="Date", how='inner')
                     except ValueError: #sometimes shooting data doesn't exist
                         continue
                     lost_rows = original_rows - team_data_df.shape[0]
-                    print(f'Inner joining match result + possesion tables resulted in losing {lost_rows} rows') # will likely be the case for current league where matches are still to be played
-    
+                    print(f'Inner joining match result + {extra_table} tables resulted in losing {lost_rows} rows') # will likely be the case for current league where matches are still to be played
         
-                if 'passing' in extra_tables_to_scrape:
-                    original_rows = team_data_df.shape[0] 
-                    passing_df = get_passing_info(match_data=match_data)
-    
-                    try:
-                        team_data_df = team_data_df.merge(passing_df[passing_vars], on="Date", how='inner')
-                    except ValueError: 
-                        continue
-                    lost_rows = original_rows - team_data_df.shape[0]
-                    print(f'Inner joining match result + passing tables resulted in losing {lost_rows} rows') # will likely be the case for current league where matches are still to be played
-        
-        
-                if 'shooting' in extra_tables_to_scrape:
-                    original_rows = team_data_df.shape[0] 
-                    shooting_df = get_shooting_info(match_data=match_data)
-        
-                    try:
-                        team_data_df = team_data_df.merge(shooting_df[shooting_vars], on="Date", how='inner')
-                    except ValueError: 
-                        continue
-        
-    
-                    lost_rows = original_rows - team_data_df.shape[0]
-                    print(f'Inner joining match result + shooting tables resulted in losing {lost_rows} rows') # will likely be the case for current league where matches are still to be played
-              
                 #add some meta data
                 team_data_df['team'] = team_name
                 team_data_df['year'] = year
@@ -109,7 +77,6 @@ def main(options):
         
         total_df = pd.concat(total_df)
         total_df.columns = [c.lower() for c in total_df.columns]
-        print(total_df.shape)
 
         with open(f'data/match_data_{league_name}.csv', 'w+', encoding = 'utf-8-sig') as f:
             total_df.to_csv(f)

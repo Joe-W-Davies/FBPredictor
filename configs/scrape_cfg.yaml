@@ -8,18 +8,13 @@ league_links:
         'SerieA': 'https://fbref.com/en/comps/11/Serie-A-Seasons'
         'Ligue1': 'https://fbref.com/en/comps/13/Ligue-1-Stats'
 
-extra_tables_to_scrape: 
-        ['shooting','passing','possession']
-
-
 match_vars: 
         ['Date', 'Time', 'Comp', 'Round', 'Day', 'Venue', 'Opponent', 'Formation','GF','GA','Result']
-possession_vars:
-        ['Date','Poss','Touches','Def Pen','Def 3rd', 'Mid 3rd', 'Att 3rd', 'Att Pen', 'Live']
-passing_vars:
-        ['Date','TotDist','PrgDist','Ast','xAG','xA','KP','1/3','PPA','CrsPA','PrgP'] #'Cmp','Att','Cmp%' are repeated 3 times in table so ignore for now
-shooting_vars: 
-        ['Date','Gls','Sh','SoT','SoT%','G/Sh','G/SoT','Dist','FK','PK','PKatt','xG','npxG','npxG/Sh','G-xG','np:G-xG']
+
+extra_tables_to_scrape:
+        'Possession': ['Date','Poss','Touches','Def Pen','Def 3rd', 'Mid 3rd', 'Att 3rd', 'Att Pen', 'Live']
+        'Passing': ['Date','TotDist','PrgDist','Ast','xAG','xA','KP','1/3','PPA','CrsPA','PrgP'] #'Cmp','Att','Cmp%' are repeated 3 times in table so ignore for now
+        'Shooting': ['Date','Gls','Sh','SoT','SoT%','G/Sh','G/SoT','Dist','FK','PK','PKatt','xG','npxG','npxG/Sh','G-xG','np:G-xG']
 
 
 

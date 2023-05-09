@@ -1,7 +1,7 @@
 # FBPredictor
 Scrape football stats and train models to predict the outcome
 
-Example scraping commans:
+Example scraping command:
 
 ```
 python3 scripts/scrape.py -c configs/scrape_cfg.yaml
