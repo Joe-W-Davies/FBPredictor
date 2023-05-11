@@ -15,7 +15,3 @@ extra_tables_to_scrape:
         'Possession': ['Date','Poss','Touches','Def Pen','Def 3rd', 'Mid 3rd', 'Att 3rd', 'Att Pen', 'Live']
         'Passing': ['Date','TotDist','PrgDist','Ast','xAG','xA','KP','1/3','PPA','CrsPA','PrgP'] #'Cmp','Att','Cmp%' are repeated 3 times in table so ignore for now
         'Shooting': ['Date','Gls','Sh','SoT','SoT%','G/Sh','G/SoT','Dist','FK','PK','PKatt','xG','npxG','npxG/Sh','G-xG','np:G-xG']
-
-
-
-

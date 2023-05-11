@@ -13,7 +13,7 @@ def main(options):
     #unpack config
 
     with open(options.config, 'r') as config_file:
-        config = yaml.load(config_file)
+        config = yaml.load(config_file, Loader=yaml.SafeLoader)
         years = config['years']
         league_links = config['league_links']
         match_vars = config['match_vars']

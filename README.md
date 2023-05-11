@@ -12,3 +12,8 @@ python3 scripts/scrape.py -c configs/scrape_cfg.yaml
 * break out more functions
 
 ## To-Do's: model training
+* Plot inputs and make Corr Map
+* add SHAP values and port over Boruta SHAP
+* plot output scores
+* fix XGBoost, Matplotlib, and seaborn pip install
+* add date of last game by subtracting current date - previous game date (before dropping nans)
