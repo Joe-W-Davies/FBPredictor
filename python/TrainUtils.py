@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from sklearn.preprocessing import LabelEncoder
 
 def impute_nulls(df, train_vars, impute=False):
     #sometimes possesion info etc just wasn't filled in on the site. 
@@ -30,13 +31,27 @@ def change_dtypes(df):
 
 
 def create_time_features(df):
-    if 'venue' in df.columns: df['venue'] = df['venue'].astype('category').cat.codes
     if 'time' in df.columns: df['hours'] = df['time'].str.replace(':.+','', regex=True).astype('int')
-    if 'date' in df.columns: df['day'] = df['date'].dt.dayofweek
-    if 'formation' in df.columns: df['formation'] = df['formation'].astype('category').cat.codes
+    if 'date' in df.columns: 
+        df['day'] = df['date'].dt.dayofweek
+        df = df.sort_values('date')
+        df['days_since_game'] = df['date'].diff().dt.days
 
     return df
 
+def encode_features(df):
+    if 'formation' in df.columns: df['formation'] = df['formation'].astype('category').cat.codes
+    if 'venue' in df.columns: df['venue'] = df['venue'].astype('category').cat.codes
+
+    #trickier because we have two columns that need encoding in the same way
+    if ('team' in df.columns) and ('opponent' in df.columns): 
+        encoder = LabelEncoder()
+        encoder.fit( pd.concat([ df['team'],df['opponent'] ]) )
+        df['team'] = encoder.transform(df['team'])
+        df['opponent'] = encoder.transform(df['opponent'])
+   
+    
+    return df
 
 class MissingDict(dict):
   __missing__ = lambda self, key:key

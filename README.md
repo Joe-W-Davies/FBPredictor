@@ -1,5 +1,5 @@
 # FBPredictor
-Scrape football stats and train models to predict the outcome
+Scrape football stats and train models to predict the outcome. 
 
 Example scraping command:
 
@@ -13,12 +13,16 @@ Example (GBDT) training command:
 python3 scripts/predict.py -c configs/train_cfg.yaml
 ```
 
+There are many features to train with - if you want to reduce them, try running with a modified Boruta-SHAP algo by adding the option:
+
+```
+python3 scripts/predict.py -c configs/train_cfg.yaml --feature_select
+```
+
 ## To-Do's: scraping
-* re-factor scraping additional tables to avoid code replication
-* break out more functions
+* weight up scraping more data v.s. not having expected-goals etc. for older years
 
 ## To-Do's: model training
-* Plot inputs and make Corr Map
-* add SHAP values and port over Boruta SHAP
+* Plot inputs and make correlation map
 * plot output scores
-* add date of last game by subtracting current date - previous game date (before dropping nans)
+* Try different models

@@ -1,5 +1,6 @@
 nominal_vars : 
-        ['team','hours','day','opponent','formation', 'venue'] #might need to remove formation if can't get access to it for upcoming games!
+        ['team','hours','day','opponent','formation', 'venue','days_since_game'] #might need to remove formation if can't get access to it for upcoming games!
+        #['hours','day','formation', 'venue','days_since_game'] #might need to remove formation if can't get access to it for upcoming games!
 
 train_vars_to_roll: 
         ['poss','touches','def pen','def 3rd', 'mid 3rd', 'att 3rd', 'att pen', 'live',

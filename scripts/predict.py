@@ -7,8 +7,10 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import roc_auc_score, roc_curve, accuracy_score
 import seaborn as sns
 import matplotlib.pyplot as plt
+import shap
 
-from TrainUtils import change_dtypes, create_time_features, impute_nulls, MissingDict
+from TrainUtils import change_dtypes, create_time_features, encode_features, impute_nulls, MissingDict
+from BorutaShap import BorutaShap
 
 
 def main(options):
@@ -39,7 +41,8 @@ def main(options):
     df['y_true'] = (df['result']=='W').astype('int8')
 
     
-    full_feature_set = set()
+    full_feature_set = set(nominal_vars)
+    
 
     #add lagged features for last 5 days
 
@@ -94,7 +97,6 @@ def main(options):
     df = pd.concat(expanded_dfs, ignore_index=True)
     
     
-    
     #drop any row with a null 
     df = df.dropna(how='any')
     df = df.sort_values(['date'])
@@ -105,26 +107,24 @@ def main(options):
 
 
 
-    #FIXME check i dropped repeated info e.g. date
-    #FIXME check why we dont have exact duplicates after merging
     #FIXME check if it is actually doing what you expect!! i.e. check it against actual stats on the website to see if the games matched up properly
-    #FIXME: make encoding the same! for all encoded features!!! e.g. dats, years - had to drop them atm. Add them back into features
-    print(df.shape)
     df['opponent'] = df['opponent'].map(team_mapping)
-    df = df.merge(df[list(full_feature_set)+['date','opponent','venue']], 
+    df = df.merge(df[list(full_feature_set)+['date']], 
                   left_on=["date", "team"], 
                   right_on=["date", "opponent"], 
                   suffixes=("","_opp"),
                   how='inner'
                   )
-    # HAVE TO BE CAREFUL - pandas might encode opponent and team differently in two different columns. So e.g. Arsenal = 0 in team but =10 in opponent! so kpeeing as strings for line above, then converting for line below
-    #df = encode_teams(df, team_mapping)
+
+    df = encode_features(df)
+
+    #FIXME check why we dont have exact duplicates after merging
     print(df.shape)
     df = df.drop_duplicates() 
     print(df.shape)
     
     #train/test split
-    final_train_vars = list(full_feature_set) + [v+'_opp' for v in list(full_feature_set)]
+    final_train_vars = list(full_feature_set) + [v+'_opp' for v in full_feature_set if v not in nominal_vars]
     print(f'training with {len(final_train_vars)} variables')
     
     x_train = df[df['date']<'2022-08-01'][final_train_vars] 
@@ -134,13 +134,19 @@ def main(options):
     y_test  = df[df['date']>'2022-08-01']['y_true']
     
     #train GBDT  
-    clf = xgb.XGBClassifier(objective='binary:logistic', n_estimators=100, 
-                            eta=0.05, max_depth=3)
+    #train_params = {'n_estimators':100, 'eta':0.05, 'max_depth':3}
+    train_params = {'n_estimators':150, 'eta':0.05, 'max_depth':4}
+    clf = xgb.XGBClassifier(objective='binary:logistic', **train_params)
 
     #Train RF
     #clf = RandomForestClassifier()
-    #                                 
-
+    og_shape = x_train.shape
+    if options.feature_select:
+        slimmed_vars = BorutaShap(x_train, y_train, final_train_vars, np.ones_like(y_train), i_iters=3, tolerance=0.1, max_vars_removed=int(0.8*len(full_feature_set)), n_trainings=20, train_params=train_params)()
+        x_train = x_train[slimmed_vars]
+        x_test = x_test[slimmed_vars]
+    print(og_shape)
+    print(x_train.shape)
     clf.fit(x_train,y_train)
     
     #predict probs and classes (argmax)
@@ -160,7 +166,6 @@ def main(options):
     #print(f'baseline accuracy {baseline_acc}')
     print(f'train accuracy: {accuracy_score(y_train, y_pred_train_class)}')
     print(f'test accuracy: {accuracy_score(y_test, y_pred_test_class)}')
-    
     
     
 
@@ -191,6 +196,29 @@ def main(options):
     c_matrix = pd.crosstab(index=trues_preds_test['actual'], columns=trues_preds_test['prediction'], normalize='columns')
     fig = sns.heatmap(c_matrix, vmin=0, vmax=1, annot=True, cmap='viridis')
     fig.get_figure().savefig('plots/confusion_matrix.pdf')
+
+
+    #shap plots
+    explainer = shap.Explainer(clf)
+    shap_values = explainer(pd.DataFrame(x_train, columns=final_train_vars))
+    vals = np.abs(shap_values.values).mean(0)
+    n_importance = {key:value for (key,value) in zip(final_train_vars,vals)}
+    n_imp_sorted = {k: v for k, v in sorted(n_importance.items(), key=lambda item: item[1])}
+
+    plt.rcParams.update({'text.usetex':'false'})
+    plt.figure()
+    shap.plots.beeswarm(shap_values, show=False)
+    plt.tight_layout()
+    plt.savefig('plots/shapley_beeswarm.pdf', bbox_inches="tight")
+    print(' --> Saved plot: plots/shapley_beeswarm.pdf')
+    plt.close()
+
+    plt.figure()
+    shap.plots.bar(shap_values, show=False)
+    plt.tight_layout()
+    plt.savefig('plots/shapley_bar_chart.pdf', bbox_inches="tight")
+    print(' --> Saved plot: plots/shapley_bar_chart.pdf')
+    plt.close() 
    
 
 if __name__ == "__main__":
@@ -198,5 +226,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     required_args = parser.add_argument_group('Required Arguments')
     required_args.add_argument('-c','--config', action='store', required=True)
+    opt_args = parser.add_argument_group('Optional Arguments')
+    opt_args.add_argument('-f','--feature_select', action='store_true',default=False)
     options=parser.parse_args()
     main(options)
