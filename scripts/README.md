@@ -1,12 +1,4 @@
-### Scrape football data from the top leagues
-
-Example commands:
-
-```
-python3 scripts/scrape.py -c configs/scrape_cfg.yaml
-```
-
-### Train classifier to predict wins v.s (loss + draw)
+### Train classifier to predict win v.s (loss or draw)
 
 A breakdown of the variables to train with:
 

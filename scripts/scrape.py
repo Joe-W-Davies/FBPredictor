@@ -49,7 +49,6 @@ def main(options):
                 team_data_df = match_info[0] #can return more than 1 table for some reason
                 team_data_df = team_data_df[match_vars] # filter match df
         
-        
                     
                 #get additional stats for a single team
                 #Can also write a yaml linking possesion vars -> [var1, var2, var3, ...]
@@ -60,7 +59,7 @@ def main(options):
     
                     #Date will be a unique ID for that team since can't play 2 matches in the same day
                     try:
-                        team_data_df = team_data_df.merge(extra_df[extra_vars], on="Date", how='inner')
+                        team_data_df = team_data_df.merge(extra_df[extra_vars], on="Date", how='left')
                     except ValueError: #sometimes shooting data doesn't exist
                         continue
                     lost_rows = original_rows - team_data_df.shape[0]
@@ -78,7 +77,7 @@ def main(options):
         total_df = pd.concat(total_df)
         total_df.columns = [c.lower() for c in total_df.columns]
 
-        with open(f'data/match_data_{league_name}.csv', 'w+', encoding = 'utf-8-sig') as f:
+        with open(f'data/match_data_{league_name}_to_predict.csv', 'w+', encoding = 'utf-8-sig') as f:
             total_df.to_csv(f)
 
 if __name__ == "__main__":
