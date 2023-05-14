@@ -12,7 +12,15 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import shap
 
-from TrainUtils import change_dtypes, create_time_features, encode_features, impute_nulls, MissingDict, add_lags, add_rolling_vars, add_expanded_vars
+from TrainUtils import (change_dtypes, 
+    create_time_features, 
+    encode_features, 
+    impute_nulls, 
+    MissingDict, 
+    add_lags, 
+    add_rolling_vars, 
+    add_expanded_vars
+)
 from BorutaShap import BorutaShap
 
 
@@ -39,7 +47,6 @@ def main(options):
     df = change_dtypes(df)
     df = impute_nulls(df, train_vars_to_roll, impute=True)
     df = create_time_features(df)
-
     current_date = datetime.today().strftime('%Y-%m-%d')
     df = df[df['date']< f'{current_date}']
     print(f'after cleaning, df has: {df.duplicated(keep=False).sum()} duplicate rows')
@@ -55,26 +62,37 @@ def main(options):
 
     #add rolled mean and median features for the previous n_days
     for day in n_days_rolling:
-        df, running_features = add_rolling_vars(df, day, running_features, train_vars_to_roll)
+        df, running_features = add_rolling_vars(
+            df, 
+            day, 
+            running_features, 
+            train_vars_to_roll
+        )
+     
     
     #add expanded mean features
-    df, running_features = add_expanded_vars(df, running_features, train_vars_to_roll)
+    df, running_features = add_expanded_vars(
+        df, 
+        running_features, 
+        train_vars_to_roll
+    )
     running_features = list(running_features)
+
     
-    #drop any row with a null 
     df = df.dropna(how='any')
     df = df.sort_values(['date'])
     df.index = range(df.shape[0])
     
 
-    #FIXME check if it is actually doing what you expect!! i.e. check it against actual stats on the website to see if the games matched up properly
+    #merge in opponent info
     df['opponent'] = df['opponent'].map(team_mapping)
-    df = df.merge(df[running_features+['date']], 
-                  left_on=["date", "team"], 
-                  right_on=["date", "opponent"], 
-                  suffixes=("","_opp"),
-                  how='inner'
-                  )
+    df = df.merge(
+        df[running_features+['date']], 
+        left_on=["date", "team"], 
+        right_on=["date", "opponent"], 
+        suffixes=("","_opp"),
+        how='inner'
+        )
 
     df = encode_features(df)
 
@@ -94,22 +112,19 @@ def main(options):
 
 
     if options.hp_opt:
-        # Define the hyperparameters to optimize
+        # Define the hyperparameter ranges
         params = {
             'learning_rate': uniform(0.01, 0.3),
             'max_depth': range(3, 10),
             'n_estimators': range(50, 1000, 50)
         }
-
         
         
-        # Set up a time series cross-validation strategy
+        # Set up a time series cross-validation 
         ts_cv = TimeSeriesSplit(n_splits=3)
         
-        # Define the XGBoost classifier
         clf = xgb.XGBClassifier()
         
-        # Set up the GridSearchCV object
         grid_search = RandomizedSearchCV(
             clf,
             params,
@@ -120,21 +135,32 @@ def main(options):
         )
         
         grid_search.fit(x_train, y_train)
-        best_params = grid_search.best_params_
+        train_params = grid_search.best_params_
         print(f'best parameters: {best_params}')
-        
-        # Train an classifier using the best hyperparameters
-        clf = xgb.XGBClassifier(**best_params)
+        clf = xgb.XGBClassifier(**train_params)
     
     #train GBDT  
     else:
+        #chose reasonable parameters anf train with them
         train_params = {'n_estimators':150, 'eta':0.05, 'max_depth':4}
-        clf = xgb.XGBClassifier(objective='binary:logistic', **train_params)
+        clf = xgb.XGBClassifier(
+            objective='binary:logistic', 
+            **train_params
+            )
 
     #Train RF
     #clf = RandomForestClassifier()
     if options.feature_select:
-        final_train_vars = BorutaShap(x_train, y_train, final_train_vars, np.ones_like(y_train), i_iters=3, tolerance=0.1, max_vars_removed=int(0.8*len(running_features)), n_trainings=20, train_params=train_params)()
+        final_train_vars = BorutaShap(x_train, 
+            y_train, 
+            final_train_vars, 
+            np.ones_like(y_train), 
+            i_iters=3, 
+            tolerance=0.1, 
+            max_vars_removed=int(0.8*len(running_features)), 
+            n_trainings=20, 
+            train_params=train_params
+            )()
         x_train = x_train[final_train_vars]
         x_test = x_test[final_train_vars]
 
@@ -154,28 +180,40 @@ def main(options):
     print()
     
     #predict classes
-    baseline_acc = accuracy_score(y_test, x_test['venue'], )
+    baseline_acc = accuracy_score(y_test, x_test['venue'])
     print(f'baseline accuracy {baseline_acc}')
     y_pred_train_class = clf.predict(x_train) 
     y_pred_test_class = clf.predict(x_test)
     print(f'train accuracy: {accuracy_score(y_train, y_pred_train_class)}')
     print(f'test accuracy: {accuracy_score(y_test, y_pred_test_class)}')
 
-    #save moedl
+    #save model
     bstr = clf.get_booster()
     bstr.save_model('models/model.json')
     print ("Saved classifier as: models/model.json")
+
+
+    #make some plots
+
     #ROCs
-    
     loss_eff_train, win_eff_train, _ = roc_curve(y_train, y_pred_train)
     loss_eff_test, win_eff_test, _ = roc_curve(y_test, y_pred_test)
     
     fig = plt.figure()
     axes = fig.gca()
+
     axes.plot(loss_eff_train, win_eff_train, color='red', label='Train set')
     axes.plot(loss_eff_test, win_eff_test, color='royalblue', label='Test set')
     
-    axes.plot(np.linspace(0,1,100),np.linspace(0,1,100), linestyle="--", color='black', zorder=0, label="Random classifier")
+    axes.plot(
+        np.linspace(0,1,100),
+        np.linspace(0,1,100), 
+        linestyle="--", 
+        color='black', 
+        zorder=0, 
+        label="Random classifier"
+    )
+
     axes.set_xlabel('False positive rate', ha='right', x=1, size=13)
     axes.set_xlim((0,1))
     axes.set_ylabel('True positive rate', ha='right', y=1, size=13)
@@ -187,8 +225,17 @@ def main(options):
     
     #confusion matrix
     trues_preds_test = pd.DataFrame({'actual':y_test, 'prediction':y_pred_test_class})
-    c_matrix = pd.crosstab(index=trues_preds_test['actual'], columns=trues_preds_test['prediction'], normalize='columns')
-    fig = sns.heatmap(c_matrix, vmin=0, vmax=1, annot=True, cmap='viridis')
+    c_matrix = pd.crosstab(
+        index=trues_preds_test['actual'], 
+        columns=trues_preds_test['prediction'], 
+        normalize='columns'
+    )
+    fig = sns.heatmap(c_matrix, 
+        vmin=0, 
+        vmax=1, 
+        annot=True, 
+        cmap='viridis'
+    )
     fig.get_figure().savefig('plots/confusion_matrix.pdf')
     plt.close() 
 
