@@ -49,5 +49,5 @@ python3 scripts/predict.py --config configs/train_cfg.yaml -l "Premier League" -
 * Try different models
 * debug why some rows are lost in training join
 
-### To-Do's: model training
+### To-Do's: betting strategy
 * add script to simulate Kelly Criterion and Expected Value Analysis (and both being >0) for past games
