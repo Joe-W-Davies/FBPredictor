@@ -17,7 +17,8 @@ def main(options):
         train_vars_to_roll = config['train_vars_to_roll']
         team_mapping = MissingDict(**config['team_mapping'])
         datasets = config['datasets']
-        n_days = config['n_days']
+        n_days_lag = config['n_days_lag']
+        n_days_rolling = config['n_days_rolling']
 
     dfs = []
     for df_name in datasets:
@@ -37,10 +38,12 @@ def main(options):
     running_features = set(nominal_vars)
 
     #add lagged features for last 5 days
-    df, running_features = add_lags(df, n_days, running_features)
+    df, running_features = add_lags(df, n_days_lag, running_features)
 
     #add rolled mean and median features for the previous n_days
-    df, running_features = add_rolling_vars(df, n_days, running_features, train_vars_to_roll)
+    #add rolled mean and median features for the previous n_days
+    for day in n_days_rolling:
+        df, running_features = add_rolling_vars(df, day, running_features, train_vars_to_roll)
     
     #add expanded mean features
     df, running_features = add_expanded_vars(df, running_features, train_vars_to_roll)

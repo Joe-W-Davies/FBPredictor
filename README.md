@@ -18,10 +18,11 @@ python3 scripts/scrape.py -c configs/scrape_cfg.yaml
 Example (GBDT) training command:
 
 ```
-python3 scripts/train.py -c configs/train_cfg.yaml (--feature_select)
+python3 scripts/train.py -c configs/train_cfg.yaml (--feature_select) (--hp_opt)
 ```
 
-There are many features to train with - if you want to reduce them, try running with a modified Boruta-SHAP algo by adding the option `--feature_select`
+There are many features to train with - if you want to reduce them, try running with a modified Boruta-SHAP algo by adding the option `--feature_select`. To optimise the model hyperparameters, add the `--hp_opt` option.
+
 
 
 
@@ -47,3 +48,6 @@ python3 scripts/predict.py --config configs/train_cfg.yaml -l "Premier League" -
 * plot output scores
 * Try different models
 * debug why some rows are lost in training join
+
+### To-Do's: model training
+* add script to simulate Kelly Criterion and Expected Value Analysis (and both being >0) for past games

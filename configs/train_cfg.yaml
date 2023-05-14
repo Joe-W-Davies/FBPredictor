@@ -15,7 +15,12 @@ datasets:
 filters:
     "comp=='Premier League' or comp=='Bundesliga' or comp=='Serie A' or comp=='Ligue 1' or comp=='La Liga'"
 
-n_days: 5
+n_days_lag: 5
+
+n_days_rolling: 
+        [5]
+        #[5,10]
+
     
 
 #some teams have different names in the Team and Opponent column

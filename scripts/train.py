@@ -6,6 +6,8 @@ import numpy as np
 import xgboost as xgb
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import roc_auc_score, roc_curve, accuracy_score
+from sklearn.model_selection import TimeSeriesSplit, RandomizedSearchCV
+from scipy.stats import uniform
 import seaborn as sns
 import matplotlib.pyplot as plt
 import shap
@@ -89,10 +91,45 @@ def main(options):
     y_train = df[df['date']<'2022-08-01']['y_true'] 
     x_test  = df[df['date']>'2022-08-01'][final_train_vars] 
     y_test  = df[df['date']>'2022-08-01']['y_true']
+
+
+    if options.hp_opt:
+        # Define the hyperparameters to optimize
+        params = {
+            'learning_rate': uniform(0.01, 0.3),
+            'max_depth': range(3, 10),
+            'n_estimators': range(50, 1000, 50)
+        }
+
+        
+        
+        # Set up a time series cross-validation strategy
+        ts_cv = TimeSeriesSplit(n_splits=3)
+        
+        # Define the XGBoost classifier
+        clf = xgb.XGBClassifier()
+        
+        # Set up the GridSearchCV object
+        grid_search = RandomizedSearchCV(
+            clf,
+            params,
+            cv=ts_cv,
+            scoring='roc_auc',
+            n_iter=150,
+            verbose=3
+        )
+        
+        grid_search.fit(x_train, y_train)
+        best_params = grid_search.best_params_
+        print(f'best parameters: {best_params}')
+        
+        # Train an classifier using the best hyperparameters
+        clf = xgb.XGBClassifier(**best_params)
     
     #train GBDT  
-    train_params = {'n_estimators':150, 'eta':0.05, 'max_depth':4}
-    clf = xgb.XGBClassifier(objective='binary:logistic', **train_params)
+    else:
+        train_params = {'n_estimators':150, 'eta':0.05, 'max_depth':4}
+        clf = xgb.XGBClassifier(objective='binary:logistic', **train_params)
 
     #Train RF
     #clf = RandomForestClassifier()
@@ -101,8 +138,9 @@ def main(options):
         x_train = x_train[final_train_vars]
         x_test = x_test[final_train_vars]
 
-    #fit
+
     clf.fit(x_train,y_train)
+
     
     #predict probs
     y_pred_train = clf.predict_proba(x_train)[:,1:].ravel() 
@@ -132,7 +170,7 @@ def main(options):
     loss_eff_train, win_eff_train, _ = roc_curve(y_train, y_pred_train)
     loss_eff_test, win_eff_test, _ = roc_curve(y_test, y_pred_test)
     
-    fig = plt.figure(1)
+    fig = plt.figure()
     axes = fig.gca()
     axes.plot(loss_eff_train, win_eff_train, color='red', label='Train set')
     axes.plot(loss_eff_test, win_eff_test, color='royalblue', label='Test set')
@@ -145,12 +183,14 @@ def main(options):
     axes.legend(bbox_to_anchor=(0.97,0.28))
     axes.grid(True, 'major', linestyle='solid', color='grey', alpha=0.5)
     fig.savefig('plots/ROC_curve.pdf')
+    plt.close() 
     
     #confusion matrix
     trues_preds_test = pd.DataFrame({'actual':y_test, 'prediction':y_pred_test_class})
     c_matrix = pd.crosstab(index=trues_preds_test['actual'], columns=trues_preds_test['prediction'], normalize='columns')
     fig = sns.heatmap(c_matrix, vmin=0, vmax=1, annot=True, cmap='viridis')
     fig.get_figure().savefig('plots/confusion_matrix.pdf')
+    plt.close() 
 
 
     #shap plots
@@ -183,5 +223,6 @@ if __name__ == "__main__":
     required_args.add_argument('-c','--config', action='store', required=True)
     opt_args = parser.add_argument_group('Optional Arguments')
     opt_args.add_argument('-f','--feature_select', action='store_true',default=False)
+    opt_args.add_argument('-o','--hp_opt', action='store_true',default=False)
     options=parser.parse_args()
     main(options)
