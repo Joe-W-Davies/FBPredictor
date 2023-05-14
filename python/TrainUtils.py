@@ -82,11 +82,11 @@ def add_rolling_vars(df, n_days, current_vars, train_vars_to_roll):
         gr = group[-1].sort_values(['date'])
         for var in train_vars_to_roll:
             #gr[rolled_train_vars[var]] = gr[var].rolling(n_days, closed='left', win_type='exponential').mean(tau=0.5) #closed='left' does not work with exp window
-            mean_var = var+'_rolling_avg'
+            mean_var = var+f'_rolling_avg_{n_days}'
             gr[mean_var] = gr[var].rolling(n_days, closed='left').mean()
             current_vars.add(mean_var)
 
-            med_var = var+'_rolling_med'
+            med_var = var+f'_rolling_med_{n_days}'
             gr[med_var] = gr[var].rolling(n_days, closed='left').median()
             current_vars.add(med_var)
 

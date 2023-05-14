@@ -24,6 +24,8 @@ python3 scripts/train.py -c configs/train_cfg.yaml (--feature_select)
 There are many features to train with - if you want to reduce them, try running with a modified Boruta-SHAP algo by adding the option `--feature_select`
 
 
+
+
 ## Predict upcoming matches
 
 To make a prediction on each match in a given league e.g. the EPL:
@@ -31,6 +33,8 @@ To make a prediction on each match in a given league e.g. the EPL:
 ```
 python3 scripts/predict.py --config configs/train_cfg.yaml -l "Premier League" --model models/model.json 
 ```
+
+
 
 
 ### To-Do's: scraping

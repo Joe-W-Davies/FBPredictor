@@ -23,7 +23,8 @@ def main(options):
         team_mapping = MissingDict(**config['team_mapping'])
         datasets = config['datasets']
         filters = config['filters']
-        n_days = config['n_days']
+        n_days_lag = config['n_days_lag']
+        n_days_rolling = config['n_days_rolling']
 
     dfs = []
     for df_name in datasets:
@@ -48,10 +49,11 @@ def main(options):
     running_features = set(nominal_vars)
 
     #add lagged features for last 5 days
-    df, running_features = add_lags(df, n_days, running_features)
+    df, running_features = add_lags(df, n_days_lag, running_features)
 
     #add rolled mean and median features for the previous n_days
-    df, running_features = add_rolling_vars(df, n_days, running_features, train_vars_to_roll)
+    for day in n_days_rolling:
+        df, running_features = add_rolling_vars(df, day, running_features, train_vars_to_roll)
     
     #add expanded mean features
     df, running_features = add_expanded_vars(df, running_features, train_vars_to_roll)
@@ -95,9 +97,9 @@ def main(options):
     #Train RF
     #clf = RandomForestClassifier()
     if options.feature_select:
-        slimmed_vars = BorutaShap(x_train, y_train, final_train_vars, np.ones_like(y_train), i_iters=3, tolerance=0.1, max_vars_removed=int(0.8*len(running_features)), n_trainings=20, train_params=train_params)()
-        x_train = x_train[slimmed_vars]
-        x_test = x_test[slimmed_vars]
+        final_train_vars = BorutaShap(x_train, y_train, final_train_vars, np.ones_like(y_train), i_iters=3, tolerance=0.1, max_vars_removed=int(0.8*len(running_features)), n_trainings=20, train_params=train_params)()
+        x_train = x_train[final_train_vars]
+        x_test = x_test[final_train_vars]
 
     #fit
     clf.fit(x_train,y_train)
