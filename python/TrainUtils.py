@@ -1,10 +1,15 @@
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
+from typing import List, Dict, Set, Tuple
 
-def impute_nulls(df, train_vars, impute=False):
+def impute_nulls(
+        df: pd.DataFrame, 
+        train_vars: List[str], 
+        impute: bool=False
+    ) -> pd.DataFrame:
     #sometimes possesion info etc just wasn't filled in on the site. 
-    #if impite, impute from avgs of similar rows
+    #if impute, impute from avgs of similar rows. Tends not to make too much diff
     if impute:
         for col_name in train_vars:
             df[col_name] = df[col_name].fillna(df.groupby(['team','year'])[col_name].transform('mean'))
@@ -14,8 +19,10 @@ def impute_nulls(df, train_vars, impute=False):
     return df
 
 
-def change_dtypes(df):
-    def fix_away_games(score):
+def change_dtypes(df: pd.DataFrame) -> pd.DataFrame:
+
+    #n.b. np.nan has type float
+    def fix_away_games(score: pd.Series) -> int | float: 
         if score is np.nan: return np.nan
         # for 2 leg games, first leg score is given in brackets e.g. 1 (2)
         elif '(' in score: return int(score[0])
@@ -30,8 +37,12 @@ def change_dtypes(df):
     return df
 
 
-def create_time_features(df):
-    if 'time' in df.columns: df['hours'] = df['time'].str.replace(':.+','', regex=True).astype('int')
+def create_time_features(df: pd.DataFrame) -> pd.DataFrame: 
+    if 'time' in df.columns: 
+        df['hours'] = df['time'].str.replace(
+            ':.+',
+            '', 
+            regex=True).astype('int')
     if 'date' in df.columns: 
         df['day'] = df['date'].dt.dayofweek
         df = df.sort_values('date')
@@ -39,9 +50,11 @@ def create_time_features(df):
 
     return df
 
-def encode_features(df):
-    if 'formation' in df.columns: df['formation'] = df['formation'].astype('category').cat.codes
-    if 'venue' in df.columns: df['venue'] = df['venue'].astype('category').cat.codes
+def encode_features(df: pd.DataFrame) -> pd.DataFrame:
+    if 'formation' in df.columns: 
+        df['formation'] = df['formation'].astype('category').cat.codes
+    if 'venue' in df.columns: 
+        df['venue'] = df['venue'].astype('category').cat.codes
 
     #trickier because we have two columns that need encoding in the same way
     if ('team' in df.columns) and ('opponent' in df.columns): 
@@ -57,11 +70,14 @@ def encode_features(df):
     
     return df
 
-class MissingDict(dict):
-  __missing__ = lambda self, key:key
 
 
-def add_lags(df, n_days, current_vars):
+def add_lags(
+        df: pd.DataFrame, 
+        n_days: List[int], 
+        current_vars: Set[str]
+    ) -> Tuple[pd.DataFrame, Set[str]]:
+
 
     lags = [x+1 for x in range(n_days)]
     lagged_dfs = []
@@ -76,7 +92,14 @@ def add_lags(df, n_days, current_vars):
     return df, current_vars
 
 
-def add_rolling_vars(df, n_days, current_vars, train_vars_to_roll):
+def add_rolling_vars(
+        df: pd.DataFrame, 
+        n_days: List[int], 
+        current_vars: Set[str],
+        train_vars_to_roll: List
+    ) -> Tuple[pd.DataFrame, Set[str]]:
+
+
     rolled_dfs = []
     for group in df.groupby(['team','year'], group_keys=False):
         gr = group[-1].sort_values(['date'])
@@ -95,7 +118,13 @@ def add_rolling_vars(df, n_days, current_vars, train_vars_to_roll):
     
     return df, current_vars
 
-def add_expanded_vars(df, current_vars, train_vars_to_roll):
+def add_expanded_vars(
+        df: pd.DataFrame, 
+        current_vars: Set[str],
+        train_vars_to_roll: List,
+    ) -> Tuple[pd.DataFrame, Set[str]]:
+
+
     expanded_dfs = []
     for group in df.groupby(['team','year'], group_keys=False):
         gr = group[-1].sort_values(['date'])
@@ -108,3 +137,7 @@ def add_expanded_vars(df, current_vars, train_vars_to_roll):
     
 
     return df, current_vars
+
+
+class MissingDict(dict):
+  __missing__ = lambda self, key:key

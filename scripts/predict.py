@@ -6,7 +6,16 @@ import yaml
 from datetime import datetime
 import xgboost as xgb
 
-from TrainUtils import change_dtypes, create_time_features, encode_features, impute_nulls, MissingDict, add_lags, add_rolling_vars, add_expanded_vars
+from TrainUtils import (
+    change_dtypes, 
+    create_time_features, 
+    encode_features, 
+    impute_nulls, 
+    MissingDict, 
+    add_lags, 
+    add_rolling_vars, 
+    add_expanded_vars
+)
 
 #scrape 
 def main(options):
@@ -43,10 +52,19 @@ def main(options):
     #add rolled mean and median features for the previous n_days
     #add rolled mean and median features for the previous n_days
     for day in n_days_rolling:
-        df, running_features = add_rolling_vars(df, day, running_features, train_vars_to_roll)
+        df, running_features = add_rolling_vars(
+            df, 
+            day, 
+            running_features, 
+            train_vars_to_roll
+        )
     
     #add expanded mean features
-    df, running_features = add_expanded_vars(df, running_features, train_vars_to_roll)
+    df, running_features = add_expanded_vars(
+        df, 
+        running_features, 
+        train_vars_to_roll
+        )
     running_features = list(running_features)
     
     
@@ -56,7 +74,6 @@ def main(options):
     
 
 
-    #FIXME check if it is actually doing what you expect!! i.e. check it against actual stats on the website to see if the games matched up properly
     df['opponent'] = df['opponent'].map(team_mapping)
     df = df.merge(df[running_features+['date']], 
                   left_on=["date", "team"], 
