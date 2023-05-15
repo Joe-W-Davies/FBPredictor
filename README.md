@@ -39,15 +39,21 @@ python3 scripts/predict.py --config configs/train_cfg.yaml -l "Premier League" -
 
 
 ### To-Do's: scraping
-* weigh up scraping more data v.s. not having expected-goals etc. for older years
+* weigh up scraping more data v.s. not having expected-goals etc. for older years [x] -> no real improvemnt (see `more_years` branch)
 * check if BundesLiga matches are somehow being scraped in EPL 
 
 ### To-Do's: model training
 * remove hard coding on train/test split date
-* Plot inputs and make correlation map
-* plot output scores
+* Plot inputs and make correlation map (separate script?)
+* plot output scores (separate script?)
+* put plotting code into functions
 * Try different models
 * debug why some rows are lost in training join
 
 ### To-Do's: betting strategy
 * add script to simulate Kelly Criterion and Expected Value Analysis (and both being >0) for past games
+
+### To-Do's: general
+* fix issue with having to scrape data and re-run workflow each time you want to predict
+* clean up BorutaShap class
+* add docstrings

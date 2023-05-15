@@ -80,7 +80,7 @@ def main(options):
     running_features = list(running_features)
 
     
-    df = df.dropna(how='any')
+    df = df[running_features+['date','y_true']].dropna(how='any')
     df = df.sort_values(['date'])
     df.index = range(df.shape[0])
     
