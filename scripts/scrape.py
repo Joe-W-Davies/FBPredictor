@@ -40,7 +40,7 @@ def main(options):
                 team_name =  tu.split('/')[-1].replace('-Stats','')
                 print(f"\nScraping {team_name} Stats")
                 match_data = requests.get(tu) 
-                time.sleep(5) 
+                time.sleep(6) 
                 
                 print('Scraping match outcomes data from:')
                 print(tu)

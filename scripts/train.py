@@ -40,6 +40,7 @@ def main(options):
     for df_name in datasets:
         dfs.append( pd.read_csv(f"data/{df_name}", index_col=0) )
     df = pd.concat(dfs)
+
     
     #data cleaning and filtering
     df = df.query(filters)
@@ -141,7 +142,7 @@ def main(options):
     
     #train GBDT  
     else:
-        #chose reasonable parameters anf train with them
+        #chose reasonable parameters and train with them
         train_params = {'n_estimators':150, 'eta':0.05, 'max_depth':4}
         clf = xgb.XGBClassifier(
             objective='binary:logistic', 

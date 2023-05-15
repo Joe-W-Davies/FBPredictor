@@ -1,0 +1,89 @@
+nominal_vars : 
+        ['team','hours','day','opponent','formation', 'venue','days_since_game'] #might need to remove formation if can't get access to it for upcoming games!
+        #['hours','day','formation', 'venue','days_since_game'] #might need to remove formation if can't get access to it for upcoming games!
+
+train_vars_to_roll: 
+        ['gls','sh','sot','sot%','g/sh','g/sot','dist','pk','pkatt']
+
+datasets:
+        ["match_data_BundesLiga_more_years.csv", "match_data_EPL_more_years.csv", "match_data_LaLiga_more_years.csv", "match_data_SerieA_more_years.csv"]
+        #["match_data_BundesLiga_more_years.csv", "match_data_EPL_more_years.csv", "match_data_LaLiga_more_years.csv", "match_data_Ligue1_more_years.csv"#, "match_data_SerieA_more_years.csv"]
+
+filters:
+    "comp=='Premier League' or comp=='Bundesliga' or comp=='Serie A' or comp=='Ligue 1' or comp=='La Liga'"
+
+n_days_lag: 5
+
+n_days_rolling: 
+        [5,10]
+        #[5]
+
+    
+
+#some teams have different names in the Team and Opponent column
+#for some reason I can't replace '-' with ' '... so have to brute force replace them :(
+team_mapping:
+    'Aston Villa': 'Aston-Villa'
+    'Brighton': 'Brighton-and-Hove-Albion'
+    'Cardiff City': 'Cardiff-City'
+    'Crystal Palace': 'Crystal-Palace'
+    'Huddersfield': 'Huddersfield-Town'
+    'Leeds United': 'Leeds-United'
+    'Leicester City': 'Leicester-City'
+    'Manchester City': 'Manchester-City'
+    'Manchester Utd': 'Manchester-United'
+    'Newcastle Utd': 'Newcastle-United'
+    'Norwich City': 'Norwich-City'
+    "Nott'ham Forest": 'Nottingham-Forest'
+    'Sheffield Utd': 'Sheffield-United'
+    'Stoke City': 'Stoke-City'
+    'Swansea City': 'Swansea-City'
+    'Tottenham': 'Tottenham-Hotspur'
+    'West Brom': 'West-Bromwich-Albion'
+    'West Ham': 'West-Ham-United'
+    'Wolves': 'Wolverhampton-Wanderers'
+
+    'Bayern Munich': 'Bayern-Munich'
+    'Union Berlin': 'Union-Berlin'
+    'RB Leipzig': 'RB-Leipzig'
+    'Bayer Leverkusen': 'Bayer-Leverkusen'
+    'Leverkusen': 'Bayer-Leverkusen'
+    'Mainz 05': 'Mainz-05'
+    'Eint Frankfurt': 'Eintracht-Frankfurt'
+    "M'Gladbach": 'Monchengladbach'
+    'Köln': 'Koln'
+    'Werder Bremen': 'Werder-Bremen'
+    'Schalke 04': 'Schalke-04'
+    'Hertha BSC': 'Hertha-BSC'
+    'Greuther Fürth': 'Greuther-Furth'
+    'Düsseldorf': 'Dusseldorf'
+    'Paderborn 07': 'Paderborn-07'
+    'Hannover 96': 'Hannover-96'
+    'Hamburger SV': 'Hamburger-SV'
+    'Nürnberg': 'Nurnberg'
+
+    'Rayo Vallecano': 'Rayo-Vallecano'
+    'Real Sociedad': 'Real-Sociedad'
+    'Cádiz': 'Cadiz'
+    'Celta Vigo': 'Celta-Vigo'
+    'Real Madrid': 'Real-Madrid'
+    'Athletic Club': 'Athletic-Club'
+    'Almería': 'Almeria'
+    'Atlético Madrid': 'Atletico-Madrid'
+    'Betis': 'Real-Betis'
+    'Alavés': 'Alaves'
+    'Leganés': 'Leganes'
+    'Las Palmas': 'Las-Palmas'
+    'Málaga': 'Malaga'
+    'La Coruña': 'Deportivo-La-Coruna'
+
+    'Clermont Foot': 'Clermont-Foot'
+    'Paris S-G': 'Paris-Saint-Germain'
+    'Saint-Étienne': 'Saint-Etienne'
+    'Nîmes': 'Nimes'
+
+    'Hellas Verona': 'Hellas-Verona'
+    'Inter': 'Internazionale'
+    
+
+
