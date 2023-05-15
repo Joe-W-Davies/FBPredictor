@@ -3,6 +3,7 @@ import numpy as np
 import xgboost as xg
 from scipy.stats import binom
 import shap
+from typing import List, Dict, Set, Tuple
 
 class BorutaShap(object):
     '''
@@ -27,7 +28,19 @@ class BorutaShap(object):
     :param keep_shadows: dont throw away shadow features when original features is removed. Makes algo less conservative
     '''
 
-    def __init__(self, X_train, y_train, all_vars, w_train, i_iters=5, n_trainings=50, max_vars_removed=10, tolerance=0.6, train_params={}, keep_shadows=True):
+    def __init__(
+            self, 
+            X_train: pd.DataFrame | np.ndarray, 
+            y_train: pd.DataFrame | np.ndarray, 
+            all_vars: List[str], 
+            w_train: pd.DataFrame | np.ndarray, 
+            i_iters: int=5, 
+            n_trainings: int=50, 
+            max_vars_removed: int=10, 
+            tolerance: int=0.6, 
+            train_params: dict={}, 
+            keep_shadows: bool=True
+        ):
 
         self.X_train             = pd.DataFrame(X_train, columns=all_vars)
         self.y_train             = y_train
@@ -53,7 +66,7 @@ class BorutaShap(object):
 
         #assert each element in all_vars is in X_train.columns
 
-    def update_vars(self, varrs):
+    def update_vars(self, varrs: list[str]) -> None:
         '''
         Update current variables to train on, for both real and shadow sets
         '''
@@ -61,7 +74,7 @@ class BorutaShap(object):
         if self.keep_shadows: self.running_shadow_vars = ['shadow_'+str(var) for var in self.all_vars]
         else: self.running_shadow_vars = ['shadow_'+str(var) for var in varrs]
 
-    def create_shadow(self):
+    def create_shadow(self) -> pd.DataFrame():
         '''
         Take all X variables, creating copies and randomly shuffling them (or a subset of them)
 
@@ -90,7 +103,7 @@ class BorutaShap(object):
         return pd.concat([real_running_x, x_shadow], axis=1)
 
 
-    def run_trainings(self):
+    def run_trainings(self) -> int:
         '''
         Run classifier training for n_iters. Return the importances for each feature averaged over n_iters.
         We run this multiple times since the feature importance ranking is not deterministic.
@@ -113,7 +126,6 @@ class BorutaShap(object):
             print ('done')
 
             #n_importance = clf.get_booster().get_score(importance_type='gain')
-            #n_importance = clf.get_booster().get_score(importance_type='gain')
             explainer = shap.Explainer(clf)
             shap_values = explainer(x_mirror)
             vals = np.abs(shap_values.values).mean(0)
@@ -123,7 +135,8 @@ class BorutaShap(object):
             best_shadow_imp = 0
             for var in self.running_shadow_vars:
                 if var in n_importance.keys():
-                    if n_importance[var] > best_shadow_imp: best_shadow_imp = n_importance[var]
+                    if n_importance[var] > best_shadow_imp: 
+                        best_shadow_imp = n_importance[var]
 
             #update importances
             for var in self.running_vars:
@@ -134,7 +147,7 @@ class BorutaShap(object):
 
         return var_hits
 
-    def check_stopping_criteria(self, removed_vars):
+    def check_stopping_criteria(self, removed_vars) -> List[int]:
         '''
         check various stopping criteria e.g. how many features have been removed?, ...
         '''
@@ -142,7 +155,7 @@ class BorutaShap(object):
         if len(removed_vars) >= self.max_vars_removed: return True
         else: return False
 
-    def slim_features(self):
+    def slim_features(self) -> List[str]:
         '''
         Execute the slimming algorithm
         '''
