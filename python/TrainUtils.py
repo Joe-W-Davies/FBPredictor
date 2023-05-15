@@ -39,11 +39,12 @@ def change_dtypes(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def create_time_features(df: pd.DataFrame) -> pd.DataFrame: 
-    if 'time' in df.columns: 
-        df['hours'] = df['time'].str.replace(
-            ':.+',
-            '', 
-            regex=True).astype('int')
+    #have nan's for ~1/3 of games in 'time' so remove feature
+    #if 'time' in df.columns: 
+    #    df['hours'] = df['time'].str.replace(
+    #        ':.+',
+    #        '', 
+    #        regex=True).astype('int')
     if 'date' in df.columns: 
         df['day'] = df['date'].dt.dayofweek
         df = df.sort_values('date')

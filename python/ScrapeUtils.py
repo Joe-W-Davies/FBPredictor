@@ -23,7 +23,7 @@ def get_extra_info(
             print(f"http://fbref.com{l.get('href')}")
             df = pd.read_html(extra_data.text, match=table_type)[0] #again, returns more than one df for some reason
             df.columns = df.columns.droplevel()
-            time.sleep(5)
+            time.sleep(7)
             break #can have more than one of the same link, so break once its found for that team under consideration
 
     return df

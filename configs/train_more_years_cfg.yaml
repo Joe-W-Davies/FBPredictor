@@ -1,9 +1,8 @@
 nominal_vars : 
-        ['team','hours','day','opponent','formation', 'venue','days_since_game'] #might need to remove formation if can't get access to it for upcoming games!
-        #['hours','day','formation', 'venue','days_since_game'] #might need to remove formation if can't get access to it for upcoming games!
+        ['team','opponent','formation', 'venue','days_since_game'] #might need to remove formation if can't get access to it for upcoming games!
 
 train_vars_to_roll: 
-        ['gls','sh','sot','sot%','g/sh','g/sot','dist','pk','pkatt']
+        ['gls','pk', 'gf','ga'] #only vars that don't have tonnes of Nulls!
 
 datasets:
         ["match_data_BundesLiga_more_years.csv", "match_data_EPL_more_years.csv", "match_data_LaLiga_more_years.csv", "match_data_SerieA_more_years.csv"]
@@ -15,8 +14,7 @@ filters:
 n_days_lag: 5
 
 n_days_rolling: 
-        [5,10]
-        #[5]
+        [5]
 
     
 

@@ -80,10 +80,12 @@ def main(options):
     running_features = list(running_features)
 
     
-    df = df.dropna(how='any')
+    print(df[running_features+['date','y_true']].info())    
+    df = df[running_features+['date','y_true']].dropna(how='any')
     df = df.sort_values(['date'])
     df.index = range(df.shape[0])
-    
+    print(df.shape)    
+
 
     #merge in opponent info
     df['opponent'] = df['opponent'].map(team_mapping)
@@ -98,9 +100,7 @@ def main(options):
     df = encode_features(df)
 
     #FIXME check why we dont have exact duplicates after merging
-    print(df.shape)
     df = df.drop_duplicates() 
-    print(df.shape)
     
     #train/test split
     final_train_vars = running_features + [v+'_opp' for v in running_features if v not in nominal_vars]
