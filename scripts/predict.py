@@ -91,7 +91,9 @@ def main(options):
 
     #only predict most recent match
     current_date = datetime.today().strftime('%Y-%m-%d')
+    print(df)
     df = df[df['date']>= f'{current_date}']
+    print(df)
 
     #load model
     clf = xgb.Booster()

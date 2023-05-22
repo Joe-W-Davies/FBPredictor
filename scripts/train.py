@@ -4,15 +4,12 @@ import yaml
 import pandas as pd
 import numpy as np
 import xgboost as xgb
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import roc_auc_score, roc_curve, accuracy_score
 from sklearn.model_selection import TimeSeriesSplit, RandomizedSearchCV
 from scipy.stats import uniform
-import seaborn as sns
-import matplotlib.pyplot as plt
-import shap
 
-from TrainUtils import (change_dtypes, 
+from TrainUtils import (
+    change_dtypes, 
     create_time_features, 
     encode_features, 
     impute_nulls, 
@@ -21,6 +18,14 @@ from TrainUtils import (change_dtypes,
     add_rolling_vars, 
     add_expanded_vars
 )
+
+from PlotUtils import (
+    plot_roc,
+    plot_confusion_matrix,
+    plot_output_score,
+    plot_shaps,
+)
+
 from BorutaShap import BorutaShap
 
 
@@ -46,7 +51,7 @@ def main(options):
     df = df.query(filters)
     df = df.dropna(how='all')
     df = change_dtypes(df)
-    df = impute_nulls(df, train_vars_to_roll, impute=True)
+    df = impute_nulls(df, [v for v in train_vars_to_roll if v in df.columns], impute=True)
     df = create_time_features(df)
     current_date = datetime.today().strftime('%Y-%m-%d')
     df = df[df['date']< f'{current_date}']
@@ -55,7 +60,7 @@ def main(options):
     #add target column
     df['y_true'] = (df['result']=='W').astype('int8')
 
-    
+    #add features
     running_features = set(nominal_vars)
 
     #add lagged features for last 5 days
@@ -81,8 +86,6 @@ def main(options):
 
     
     df = df[running_features+['date','y_true']].dropna(how='any')
-    df = df.sort_values(['date'])
-    df.index = range(df.shape[0])
     
 
     #merge in opponent info
@@ -113,44 +116,40 @@ def main(options):
 
 
     if options.hp_opt:
-        # Define the hyperparameter ranges
+
         params = {
             'learning_rate': uniform(0.01, 0.3),
             'max_depth': range(3, 10),
-            'n_estimators': range(50, 1000, 50)
+            'n_estimators': range(50, 1000, 50),
+            'lambda': uniform(0.01, 10),
         }
-        
         
         # Set up a time series cross-validation 
         ts_cv = TimeSeriesSplit(n_splits=3)
-        
-        clf = xgb.XGBClassifier()
+        clf = xgb.XGBClassifier(objective='binary:logistic')
         
         grid_search = RandomizedSearchCV(
             clf,
             params,
             cv=ts_cv,
             scoring='roc_auc',
-            n_iter=150,
+            n_iter=500,
             verbose=3
         )
         
         grid_search.fit(x_train, y_train)
         train_params = grid_search.best_params_
-        print(f'best parameters: {best_params}')
+        print(f'best parameters: {train_params}')
         clf = xgb.XGBClassifier(**train_params)
     
-    #train GBDT  
     else:
         #chose reasonable parameters and train with them
         train_params = {'n_estimators':150, 'eta':0.05, 'max_depth':4}
         clf = xgb.XGBClassifier(
             objective='binary:logistic', 
             **train_params
-            )
+        )
 
-    #Train RF
-    #clf = RandomForestClassifier()
     if options.feature_select:
         final_train_vars = BorutaShap(x_train, 
             y_train, 
@@ -161,7 +160,7 @@ def main(options):
             max_vars_removed=int(0.8*len(running_features)), 
             n_trainings=20, 
             train_params=train_params
-            )()
+        )()
         x_train = x_train[final_train_vars]
         x_test = x_test[final_train_vars]
 
@@ -189,79 +188,16 @@ def main(options):
     print(f'test accuracy: {accuracy_score(y_test, y_pred_test_class)}')
 
     #save model
-    bstr = clf.get_booster()
-    bstr.save_model('models/model.json')
-    print ("Saved classifier as: models/model.json")
-
+    if options.save_model:
+        bstr = clf.get_booster()
+        bstr.save_model('models/model.json')
+        print ("Saved classifier as: models/model.json")
 
     #make some plots
-
-    #ROCs
-    loss_eff_train, win_eff_train, _ = roc_curve(y_train, y_pred_train)
-    loss_eff_test, win_eff_test, _ = roc_curve(y_test, y_pred_test)
-    
-    fig = plt.figure()
-    axes = fig.gca()
-
-    axes.plot(loss_eff_train, win_eff_train, color='red', label='Train set')
-    axes.plot(loss_eff_test, win_eff_test, color='royalblue', label='Test set')
-    
-    axes.plot(
-        np.linspace(0,1,100),
-        np.linspace(0,1,100), 
-        linestyle="--", 
-        color='black', 
-        zorder=0, 
-        label="Random classifier"
-    )
-
-    axes.set_xlabel('False positive rate', ha='right', x=1, size=13)
-    axes.set_xlim((0,1))
-    axes.set_ylabel('True positive rate', ha='right', y=1, size=13)
-    axes.set_ylim((0,1))
-    axes.legend(bbox_to_anchor=(0.97,0.28))
-    axes.grid(True, 'major', linestyle='solid', color='grey', alpha=0.5)
-    fig.savefig('plots/ROC_curve.pdf')
-    plt.close() 
-    
-    #confusion matrix
-    trues_preds_test = pd.DataFrame({'actual':y_test, 'prediction':y_pred_test_class})
-    c_matrix = pd.crosstab(
-        index=trues_preds_test['actual'], 
-        columns=trues_preds_test['prediction'], 
-        normalize='columns'
-    )
-    fig = sns.heatmap(c_matrix, 
-        vmin=0, 
-        vmax=1, 
-        annot=True, 
-        cmap='viridis'
-    )
-    fig.get_figure().savefig('plots/confusion_matrix.pdf')
-    plt.close() 
-
-
-    #shap plots
-    explainer = shap.Explainer(clf)
-    shap_values = explainer(pd.DataFrame(x_train, columns=final_train_vars))
-    vals = np.abs(shap_values.values).mean(0)
-    n_importance = {key:value for (key,value) in zip(final_train_vars,vals)}
-    n_imp_sorted = {k: v for k, v in sorted(n_importance.items(), key=lambda item: item[1])}
-
-    plt.rcParams.update({'text.usetex':'false'})
-    plt.figure()
-    shap.plots.beeswarm(shap_values, show=False)
-    plt.tight_layout()
-    plt.savefig('plots/shapley_beeswarm.pdf', bbox_inches="tight")
-    print(' --> Saved plot: plots/shapley_beeswarm.pdf')
-    plt.close()
-
-    plt.figure()
-    shap.plots.bar(shap_values, show=False)
-    plt.tight_layout()
-    plt.savefig('plots/shapley_bar_chart.pdf', bbox_inches="tight")
-    print(' --> Saved plot: plots/shapley_bar_chart.pdf')
-    plt.close() 
+    plot_roc(clf, y_train, y_pred_train, y_test, y_pred_test)
+    plot_confusion_matrix(y_test, y_pred_test_class)
+    plot_output_score(y_test, y_pred_test)
+    plot_shaps(clf, x_test, final_train_vars)
    
 
 if __name__ == "__main__":
@@ -272,5 +208,6 @@ if __name__ == "__main__":
     opt_args = parser.add_argument_group('Optional Arguments')
     opt_args.add_argument('-f','--feature_select', action='store_true',default=False)
     opt_args.add_argument('-o','--hp_opt', action='store_true',default=False)
+    opt_args.add_argument('-s','--save_model', action='store_true',default=False)
     options=parser.parse_args()
     main(options)

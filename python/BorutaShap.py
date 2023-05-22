@@ -3,7 +3,6 @@ import numpy as np
 import xgboost as xg
 from scipy.stats import binom
 import shap
-from typing import List, Dict, Set, Tuple
 
 class BorutaShap(object):
     '''
@@ -32,7 +31,7 @@ class BorutaShap(object):
             self, 
             X_train: pd.DataFrame | np.ndarray, 
             y_train: pd.DataFrame | np.ndarray, 
-            all_vars: List[str], 
+            all_vars: list[str], 
             w_train: pd.DataFrame | np.ndarray, 
             i_iters: int=5, 
             n_trainings: int=50, 
@@ -66,6 +65,7 @@ class BorutaShap(object):
 
         #assert each element in all_vars is in X_train.columns
 
+
     def update_vars(self, varrs: list[str]) -> None:
         '''
         Update current variables to train on, for both real and shadow sets
@@ -74,7 +74,8 @@ class BorutaShap(object):
         if self.keep_shadows: self.running_shadow_vars = ['shadow_'+str(var) for var in self.all_vars]
         else: self.running_shadow_vars = ['shadow_'+str(var) for var in varrs]
 
-    def create_shadow(self) -> pd.DataFrame():
+
+    def create_shadow(self) -> pd.DataFrame:
         '''
         Take all X variables, creating copies and randomly shuffling them (or a subset of them)
 
@@ -147,7 +148,8 @@ class BorutaShap(object):
 
         return var_hits
 
-    def check_stopping_criteria(self, removed_vars) -> List[int]:
+
+    def check_stopping_criteria(self, removed_vars) -> list[int]:
         '''
         check various stopping criteria e.g. how many features have been removed?, ...
         '''
@@ -155,7 +157,8 @@ class BorutaShap(object):
         if len(removed_vars) >= self.max_vars_removed: return True
         else: return False
 
-    def slim_features(self) -> List[str]:
+
+    def slim_features(self) -> list[str]:
         '''
         Execute the slimming algorithm
         '''
@@ -183,6 +186,7 @@ class BorutaShap(object):
         #return optimal set of vars
         print ('final kept variables are: {}'.format(self.running_vars))
         return self.running_vars 
+
 
     def __call__(self):
         return self.slim_features()

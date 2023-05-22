@@ -1,11 +1,10 @@
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
-from typing import List, Dict, Set, Tuple
 
 def impute_nulls(
         df: pd.DataFrame, 
-        train_vars: List[str], 
+        train_vars: list[str], 
         impute: bool=False
     ) -> pd.DataFrame:
 
@@ -39,6 +38,7 @@ def change_dtypes(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def create_time_features(df: pd.DataFrame) -> pd.DataFrame: 
+
     if 'time' in df.columns: 
         df['hours'] = df['time'].str.replace(
             ':.+',
@@ -51,7 +51,9 @@ def create_time_features(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
+
 def encode_features(df: pd.DataFrame) -> pd.DataFrame:
+
     if 'formation' in df.columns: 
         df['formation'] = df['formation'].astype('category').cat.codes
     if 'venue' in df.columns: 
@@ -75,9 +77,9 @@ def encode_features(df: pd.DataFrame) -> pd.DataFrame:
 
 def add_lags(
         df: pd.DataFrame, 
-        n_days: List[int], 
-        current_vars: Set[str]
-    ) -> Tuple[pd.DataFrame, Set[str]]:
+        n_days: list[int], 
+        current_vars: set[str]
+    ) -> tuple[pd.DataFrame, set[str]]:
 
 
     lags = [x+1 for x in range(n_days)]
@@ -85,7 +87,7 @@ def add_lags(
     for group in df.groupby(['team','year'], group_keys=False):
         gr = group[-1].sort_values(['date'])
         for lag in lags:
-            gr[f'lag_{lag}'] = gr['y_true'].shift(lag)
+            gr[f'lag_{lag}'] = gr['y_true'].copy().shift(lag)
             current_vars.add(f'lag_{lag}')
         lagged_dfs.append(gr)
     df = pd.concat(lagged_dfs, ignore_index=True) 
@@ -95,10 +97,10 @@ def add_lags(
 
 def add_rolling_vars(
         df: pd.DataFrame, 
-        n_days: List[int], 
-        current_vars: Set[str],
-        train_vars_to_roll: List
-    ) -> Tuple[pd.DataFrame, Set[str]]:
+        n_days: list[int], 
+        current_vars: set[str],
+        train_vars_to_roll: list
+    ) -> tuple[pd.DataFrame, set[str]]:
 
 
     rolled_dfs = []
@@ -106,13 +108,18 @@ def add_rolling_vars(
         gr = group[-1].sort_values(['date'])
         for var in train_vars_to_roll:
             #gr[rolled_train_vars[var]] = gr[var].rolling(n_days, closed='left', win_type='exponential').mean(tau=0.5) #closed='left' does not work with exp window
+
             mean_var = var+f'_rolling_avg_{n_days}'
-            gr[mean_var] = gr[var].rolling(n_days, closed='left').mean()
+            gr[mean_var] = gr[var].copy().rolling(n_days, closed='left').mean()
             current_vars.add(mean_var)
 
             med_var = var+f'_rolling_med_{n_days}'
-            gr[med_var] = gr[var].rolling(n_days, closed='left').median()
+            gr[med_var] = gr[var].copy().rolling(n_days, closed='left').median()
             current_vars.add(med_var)
+
+            std_var = var+f'_rolling_std_{n_days}'
+            gr[std_var] = gr[var].copy().rolling(n_days, closed='left').std()
+            current_vars.add(std_var)
 
         rolled_dfs.append(gr)
     df = pd.concat(rolled_dfs, ignore_index=True)
@@ -121,9 +128,9 @@ def add_rolling_vars(
 
 def add_expanded_vars(
         df: pd.DataFrame, 
-        current_vars: Set[str],
-        train_vars_to_roll: List,
-    ) -> Tuple[pd.DataFrame, Set[str]]:
+        current_vars: set[str],
+        train_vars_to_roll: list,
+    ) -> tuple[pd.DataFrame, set[str]]:
 
 
     expanded_dfs = []
@@ -131,7 +138,7 @@ def add_expanded_vars(
         gr = group[-1].sort_values(['date'])
         for var in train_vars_to_roll:
             modified_var = var+'_expanded'
-            gr[modified_var] = gr[var].expanding().mean()
+            gr[modified_var] = gr[var].copy().expanding().mean()
             current_vars.add(modified_var)
         expanded_dfs.append(gr)
     df = pd.concat(expanded_dfs, ignore_index=True)

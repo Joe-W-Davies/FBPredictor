@@ -1,12 +1,12 @@
 years: 
-        [2022, 2021, 2020, 2019, 2018, 2017]
+        [2022] #, 2021, 2020, 2019, 2018, 2017]
 
 league_links: 
         'EPL': 'https://fbref.com/en/comps/9/Premier-League-Stats' 
-        'BundesLiga': 'https://fbref.com/en/comps/20/Bundesliga-Stats'
-        'LaLiga': 'https://fbref.com/en/comps/12/La-Liga-Seasons'
-        'SerieA': 'https://fbref.com/en/comps/11/Serie-A-Seasons'
-        'Ligue1': 'https://fbref.com/en/comps/13/Ligue-1-Stats'
+        #'BundesLiga': 'https://fbref.com/en/comps/20/Bundesliga-Stats'
+        #'LaLiga': 'https://fbref.com/en/comps/12/La-Liga-Seasons'
+        #'SerieA': 'https://fbref.com/en/comps/11/Serie-A-Seasons'
+        #'Ligue1': 'https://fbref.com/en/comps/13/Ligue-1-Stats'
 
 match_vars: 
         ['Date', 'Time', 'Comp', 'Round', 'Day', 'Venue', 'Opponent', 'Formation','GF','GA','Result']

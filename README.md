@@ -24,6 +24,8 @@ python3 scripts/train.py -c configs/train_cfg.yaml (--feature_select) (--hp_opt)
 There are many features to train with - if you want to reduce them, try running with a modified Boruta-SHAP algo by adding the option `--feature_select`. To optimise the model hyperparameters, add the `--hp_opt` option.
 
 
+The current best test accuracy is: 74.28%.
+
 
 
 
@@ -39,7 +41,7 @@ python3 scripts/predict.py --config configs/train_cfg.yaml -l "Premier League" -
 
 
 ### To-Do's: scraping
-* weigh up scraping more data v.s. not having expected-goals etc. for older years [x] -> no real improvemnt (see `more_years` branch)
+* weigh up scraping more data v.s. not having expected-goals etc. for older years -[x] -> no real improvemnt (see `more_years` branch)
 * check if BundesLiga matches are somehow being scraped in EPL 
 
 ### To-Do's: model training
