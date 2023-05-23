@@ -149,7 +149,7 @@ class BorutaShap(object):
         return var_hits
 
 
-    def check_stopping_criteria(self, removed_vars) -> list[int]:
+    def check_stopping_criteria(self, removed_vars: str) -> bool:
         '''
         check various stopping criteria e.g. how many features have been removed?, ...
         '''

@@ -9,7 +9,7 @@ def impute_nulls(
     ) -> pd.DataFrame:
 
     #sometimes possesion info etc just wasn't filled in on the site. 
-    #if impute, impute from avgs of similar rows. Tends not to make too much diff
+    #if impute, impute from avgs of similar rows. Tends not to make too much diff to final outputs
     if impute:
         for col_name in train_vars:
             df[col_name] = df[col_name].fillna(df.groupby(['team','year'])[col_name].transform('mean'))
@@ -107,10 +107,10 @@ def add_rolling_vars(
     for group in df.groupby(['team','year'], group_keys=False):
         gr = group[-1].sort_values(['date'])
         for var in train_vars_to_roll:
-            #gr[rolled_train_vars[var]] = gr[var].rolling(n_days, closed='left', win_type='exponential').mean(tau=0.5) #closed='left' does not work with exp window
 
             mean_var = var+f'_rolling_avg_{n_days}'
             gr[mean_var] = gr[var].copy().rolling(n_days, closed='left').mean()
+            #gr[mean_var] = gr[var].copy().ewm(span=1).mean().shift()
             current_vars.add(mean_var)
 
             med_var = var+f'_rolling_med_{n_days}'
@@ -126,6 +126,7 @@ def add_rolling_vars(
     
     return df, current_vars
 
+
 def add_expanded_vars(
         df: pd.DataFrame, 
         current_vars: set[str],
@@ -138,7 +139,7 @@ def add_expanded_vars(
         gr = group[-1].sort_values(['date'])
         for var in train_vars_to_roll:
             modified_var = var+'_expanded'
-            gr[modified_var] = gr[var].copy().expanding().mean()
+            gr[modified_var] = gr[var].copy().expanding().mean().shift()
             current_vars.add(modified_var)
         expanded_dfs.append(gr)
     df = pd.concat(expanded_dfs, ignore_index=True)
