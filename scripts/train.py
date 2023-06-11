@@ -15,6 +15,7 @@ from TrainUtils import (
     impute_nulls, 
     MissingDict, 
     add_lags, 
+    add_odds,
     add_rolling_vars, 
     add_expanded_vars
 )
@@ -61,7 +62,8 @@ def main(options):
     df['y_true'] = (df['result']=='W').astype('int8')
 
     #add features
-    running_features = set(nominal_vars)
+    running_features = set()
+
 
     #add lagged features for last 5 days
     df, running_features = add_lags(df, n_days_lag, running_features)
@@ -85,28 +87,28 @@ def main(options):
     running_features = list(running_features)
 
     
-    df = df[running_features+['date','y_true']].dropna(how='any')
+    df = df[nominal_vars+running_features+['date','y_true']].dropna(how='any')
     
 
     #merge in opponent info
     df['opponent'] = df['opponent'].map(team_mapping)
     df = df.merge(
-        df[running_features+['date']], 
+        df[nominal_vars+running_features+['date']], 
         left_on=["date", "team"], 
         right_on=["date", "opponent"], 
         suffixes=("","_opp"),
         how='inner'
         )
 
-    df = encode_features(df)
+    #add odds (must be done after above else you lose opp info)
+    if options.add_odds:
+        df, nominal_vars = add_odds(df, nominal_vars, team_mapping)
 
-    #FIXME check why we dont have exact duplicates after merging
-    print(df.shape)
-    df = df.drop_duplicates() 
-    print(df.shape)
+    df = encode_features(df)
     
     #train/test split
-    final_train_vars = running_features + [v+'_opp' for v in running_features if v not in nominal_vars]
+    final_train_vars = nominal_vars + running_features + [v+'_opp' for v in running_features if v not in nominal_vars]
+
     print(f'training with {len(final_train_vars)} variables')
     
     x_train = df[df['date']<'2022-08-01'][final_train_vars] 
@@ -144,7 +146,7 @@ def main(options):
     
     else:
         #chose reasonable parameters and train with them
-        train_params = {'n_estimators':150, 'eta':0.05, 'max_depth':4}
+        train_params = {'n_estimators':100, 'eta':0.05, 'max_depth':4}
         clf = xgb.XGBClassifier(
             objective='binary:logistic', 
             **train_params
@@ -208,6 +210,7 @@ if __name__ == "__main__":
     opt_args = parser.add_argument_group('Optional Arguments')
     opt_args.add_argument('-f','--feature_select', action='store_true',default=False)
     opt_args.add_argument('-o','--hp_opt', action='store_true',default=False)
+    opt_args.add_argument('-a','--add_odds', action='store_true',default=False)
     opt_args.add_argument('-s','--save_model', action='store_true',default=False)
     options=parser.parse_args()
     main(options)

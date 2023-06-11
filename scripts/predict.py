@@ -41,7 +41,7 @@ def main(options):
 
     #add target column
     df['y_true'] = (df['result']=='W').astype('int8')
-    #FIXME: probs need to impute NA's as well since we did this in the training, but might have to be careful with accidentally doing this for unplayed games
+    #FIXME: probs need to impute NA's as well since we did this in the training
 
 
     running_features = set(nominal_vars)

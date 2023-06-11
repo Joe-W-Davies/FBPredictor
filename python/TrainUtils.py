@@ -1,6 +1,11 @@
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
+import glob 
+import os
+
+class MissingDict(dict):
+  __missing__ = lambda self, key:key
 
 def impute_nulls(
         df: pd.DataFrame, 
@@ -73,6 +78,58 @@ def encode_features(df: pd.DataFrame) -> pd.DataFrame:
     
     return df
 
+
+
+def add_odds(
+        df: pd.DataFrame, 
+        nominal_vars: list[str],
+        team_mapping: MissingDict
+    ) -> tuple[pd.DataFrame, list[str]]:
+
+    files = glob.glob(f'{os.getcwd()}/data/odds/*.csv')
+    odds_dfs = []
+    
+    for fn in files:
+        odds_dfs.append(pd.read_csv(fn))
+    odds = pd.concat(odds_dfs)
+    
+    #few options:
+    #1) could average all the non-na odds
+    #2) could put all the non-na odds into the model
+    #4) could put all the non-na odds into the model, but check they aren't too sparse
+    
+    #going to do option  #2 for now
+    odds_providers = ['B365', 'BW', 'IW', 'PS', 'WH', 'VC']
+    home_odds = [op+'H' for op in odds_providers]
+    away_odds = [op+'A' for op in odds_providers]
+    
+    #FIXME: check this dt matches up with other one
+    odds['date'] = pd.to_datetime(odds['Date'], dayfirst=True)
+    odds = odds[home_odds + away_odds + ['date','HomeTeam','Div']].dropna(axis='rows')
+
+
+    odds['HomeTeam'] = odds['HomeTeam'].map(team_mapping)
+
+
+    #DEBUGs
+    #l2 = odds['HomeTeam'].unique()
+    #l1 = df['team'].unique()
+    #print([x for x in l1 if x not in l2] + [x for x in l2 if x not in l1])
+    #END DEBUGs
+
+
+    #since only one set of odds are provide per game, and we have current
+    #have two rows per game, inner join will drop Away games (repeated info)
+    df = df.merge(
+        odds, 
+        left_on=["date", "team"], 
+        right_on=["date", "HomeTeam"], 
+        suffixes=("","_opp"),
+        how='inner'
+        )
+
+
+    return df, nominal_vars + home_odds + away_odds
 
 
 def add_lags(
@@ -148,5 +205,3 @@ def add_expanded_vars(
     return df, current_vars
 
 
-class MissingDict(dict):
-  __missing__ = lambda self, key:key
