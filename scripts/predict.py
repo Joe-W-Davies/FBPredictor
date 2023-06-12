@@ -73,7 +73,7 @@ def main(options):
     
     
     #drop any row with a null if backtesting
-    if options.backtest_bankroll: df = df.dropna(how='any')
+    if options.bankroll: df = df.dropna(how='any')
     df = df.sort_values(['date'])
     df.index = range(df.shape[0])
     
@@ -88,7 +88,7 @@ def main(options):
                   )
 
     #add odds (must be done after above else you lose opp info)
-    if options.add_odds:
+    if options.add_odds or options.bankroll:
         df, home_odds, away_odds = add_odds(df, team_mapping)
 
     df = encode_features(df)
@@ -96,7 +96,7 @@ def main(options):
 
     #only predict most recent match if not backtesting
     current_date = datetime.today().strftime('%Y-%m-%d')
-    if options.backtest_bankroll: df = df[df['date'] <= f'{current_date}']
+    if options.bankroll: df = df[df['date'] <= f'{current_date}']
     else: df = df[df['date'] >= f'{current_date}']
 
     #load model
@@ -104,30 +104,28 @@ def main(options):
     clf.load_model(f'{options.model}')
     print(f'loaded model from: {options.model}')
     final_train_vars = clf.feature_names
-    if options.add_odds:
-        if len([x for x in home_odds+away_odds if x not in final_train_vars]) > 0:
-            raise IOError('If you ask odds to be added at eval time, you needed to train with them too')
 
-    if options.backtest_bankroll: 
+    if options.bankroll: 
+
         x_test  = df[final_train_vars] 
         y_true  = df['y_true']
         d_test = xgb.DMatrix(x_test, feature_names=final_train_vars)
 
-        x_test['y_pred'] = clf.predict(d_test)
-        x_test['y_pred_class'] = np.select([x_test['y_pred'].gt(0.5)], [1], default=0) #FIXME: add threshold into here
-        x_test['win'] = (x_test['y_pred_class'] == y_true).astype(int)
-        x_test['bankroll_frac'] = x_test.apply(kelly_critereon, axis=1, args=[home_odds, away_odds]) #FIXME: add threshold into here too
+        df['y_pred'] = clf.predict(d_test)
+        df['y_pred_class'] = np.select([df['y_pred'].gt(0.5)], [1], default=0) #FIXME: add threshold into here
+        df['win'] = (df['y_pred_class'] == y_true).astype(int)
+        df['bankroll_frac'] = df.apply(kelly_critereon, axis=1, args=[home_odds, away_odds]) #FIXME: add threshold into here too
 
-        x_test['y_true'] = y_true
+        df['y_true'] = y_true
         #drop cases where bet isn't advised
-        x_test = x_test.query('bankroll_frac>0')
-        x_test['bet'] = options.backtest_bankroll * x_test['bankroll_frac']
+        df = df.query('bankroll_frac>0')
+        df['bet'] = options.bankroll * df['bankroll_frac']
 
-        print(x_test[['y_pred','y_pred_class','y_true','win','bankroll_frac','bet']].head(50))
+        print(df[['team_str','opponent_str','y_pred','y_pred_class','y_true','win','bankroll_frac','bet']].head(50))
 
-        net_winning = sum((x_test['bet'] * x_test['win']) - (x_test['bet'] * x_test['win'].replace({0:1, 1:0})))
-        print(sum(x_test['bet'] * x_test['win'])) 
-        print(sum(x_test['bet'] * x_test['win'].replace({0:1, 1:0})))
+        net_winning = sum((df['bet'] * df['win']) - (df['bet'] * df['win'].replace({0:1, 1:0})))
+        print(sum(df['bet'] * df['win'])) 
+        print(sum(df['bet'] * df['win'].replace({0:1, 1:0})))
         print(f'total net winning: {net_winning}')
         
 
@@ -156,7 +154,7 @@ if __name__ == "__main__":
     opt_args.add_argument('-l','--league', action='store')
     opt_args.add_argument('-y','--year', action='store')
     opt_args.add_argument('-a','--add_odds', action='store_true',default=False)
-    opt_args.add_argument('-b','--backtest_bankroll', action='store',default=False, type=float)
+    opt_args.add_argument('-b','--bankroll', action='store',default=False, type=float)
     opt_args.add_argument('-t','--threshold', action='store',default=False, type=float)
     options=parser.parse_args()
     main(options)

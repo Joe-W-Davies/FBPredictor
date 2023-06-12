@@ -61,3 +61,4 @@ The `-b` option backtests with the Kelly Critereon used as the betting strategy.
 * think about whether to drop either home/away match to prevent double same info being fed twice (FYI done autoamticaly if joinining odds info in)
 * fix issue with having to scrape data and re-run workflow each time you want to predict
 * add docstrings
+* scrape live odds for upcoming matches if adding these features in
