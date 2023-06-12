@@ -13,8 +13,10 @@ from TrainUtils import (
     impute_nulls, 
     MissingDict, 
     add_lags, 
+    add_odds,
     add_rolling_vars, 
-    add_expanded_vars
+    add_expanded_vars,
+    kelly_critereon
 )
 
 #scrape 
@@ -22,8 +24,8 @@ def main(options):
 
     with open(options.config, 'r') as config_file:
         config = yaml.load(config_file, Loader=yaml.SafeLoader)
-        nominal_vars = config['nominal_vars']
         train_vars_to_roll = config['train_vars_to_roll']
+        nominal_vars = config['nominal_vars']
         team_mapping = MissingDict(**config['team_mapping'])
         datasets = config['datasets']
         n_days_lag = config['n_days_lag']
@@ -35,7 +37,9 @@ def main(options):
     df = pd.concat(dfs)
     
     #data cleaning and filtering
-    df = df.query(f"comp=='{options.league}'")
+    if options.league: df = df.query(f"comp=='{options.league}'")
+    if options.year: df = df.query(f"year=={options.year}")
+
     df = change_dtypes(df)
     df = create_time_features(df)
 
@@ -49,7 +53,6 @@ def main(options):
     #add lagged features for last 5 days
     df, running_features = add_lags(df, n_days_lag, running_features)
 
-    #add rolled mean and median features for the previous n_days
     #add rolled mean and median features for the previous n_days
     for day in n_days_rolling:
         df, running_features = add_rolling_vars(
@@ -65,15 +68,17 @@ def main(options):
         running_features, 
         train_vars_to_roll
         )
+
     running_features = list(running_features)
     
     
-    #drop any row with a null 
+    #drop any row with a null if backtesting
+    if options.backtest_bankroll: df = df.dropna(how='any')
     df = df.sort_values(['date'])
     df.index = range(df.shape[0])
     
 
-
+    #add opponnent info in
     df['opponent'] = df['opponent'].map(team_mapping)
     df = df.merge(df[running_features+['date']], 
                   left_on=["date", "team"], 
@@ -82,38 +87,63 @@ def main(options):
                   how='inner'
                   )
 
+    #add odds (must be done after above else you lose opp info)
+    if options.add_odds:
+        df, home_odds, away_odds = add_odds(df, team_mapping)
+
     df = encode_features(df)
-
-    #FIXME check why we dont have exact duplicates after merging
-    df = df.drop_duplicates() 
     
-    #train/test split
 
-    #only predict most recent match
+    #only predict most recent match if not backtesting
     current_date = datetime.today().strftime('%Y-%m-%d')
-    print(df)
-    df = df[df['date']>= f'{current_date}']
-    print(df)
+    if options.backtest_bankroll: df = df[df['date'] <= f'{current_date}']
+    else: df = df[df['date'] >= f'{current_date}']
 
     #load model
     clf = xgb.Booster()
     clf.load_model(f'{options.model}')
     print(f'loaded model from: {options.model}')
     final_train_vars = clf.feature_names
+    if options.add_odds:
+        if len([x for x in home_odds+away_odds if x not in final_train_vars]) > 0:
+            raise IOError('If you ask odds to be added at eval time, you needed to train with them too')
+
+    if options.backtest_bankroll: 
+        x_test  = df[final_train_vars] 
+        y_true  = df['y_true']
+        d_test = xgb.DMatrix(x_test, feature_names=final_train_vars)
+
+        x_test['y_pred'] = clf.predict(d_test)
+        x_test['y_pred_class'] = np.select([x_test['y_pred'].gt(0.5)], [1], default=0) #FIXME: add threshold into here
+        x_test['win'] = (x_test['y_pred_class'] == y_true).astype(int)
+        x_test['bankroll_frac'] = x_test.apply(kelly_critereon, axis=1, args=[home_odds, away_odds]) #FIXME: add threshold into here too
+
+        x_test['y_true'] = y_true
+        #drop cases where bet isn't advised
+        x_test = x_test.query('bankroll_frac>0')
+        x_test['bet'] = options.backtest_bankroll * x_test['bankroll_frac']
+
+        print(x_test[['y_pred','y_pred_class','y_true','win','bankroll_frac','bet']].head(50))
+
+        net_winning = sum((x_test['bet'] * x_test['win']) - (x_test['bet'] * x_test['win'].replace({0:1, 1:0})))
+        print(sum(x_test['bet'] * x_test['win'])) 
+        print(sum(x_test['bet'] * x_test['win'].replace({0:1, 1:0})))
+        print(f'total net winning: {net_winning}')
+        
 
  
-    #predict outome
-    for team in df['team'].unique():
-        df_team = df.query(f"team=={team}")
-        df_team = df_team.sort_values('date').head(1)
-        x_test  = df_team[final_train_vars] 
-        d_test = xgb.DMatrix(x_test, feature_names=final_train_vars)
-        y_pred_train = clf.predict(d_test)
+    else:
+        for team in df['team'].unique():
+            df_team = df.query(f"team=={team}")
+            df_team = df_team.sort_values('date').head(1)
+            x_test  = df_team[final_train_vars] 
+            d_test = xgb.DMatrix(x_test, feature_names=final_train_vars)
+            y_pred_test = clf.predict(d_test)
 
-        team = df_team['team_str'].values[0]
-        opp = df_team['opponent_str'].values[0]
-        date = df_team['date'].dt.date.values[0]
-        print(f"probability of {team} winning against {opp} on {date} is {round(float(y_pred_train[0]),3)}")
+            team = df_team['team_str'].values[0]
+            opp = df_team['opponent_str'].values[0]
+            date = df_team['date'].dt.date.values[0]
+            print(f"probability of {team} winning against {opp} on {date} is {round(float(y_pred_test[0]),3)}")
    
 
 if __name__ == "__main__":
@@ -121,7 +151,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     required_args = parser.add_argument_group('Required Arguments')
     required_args.add_argument('-c','--config', action='store', required=True)
-    required_args.add_argument('-l','--league', action='store', required=True)
     required_args.add_argument('-m','--model', action='store', required=True)
+    opt_args = parser.add_argument_group('Optional Arguments')
+    opt_args.add_argument('-l','--league', action='store')
+    opt_args.add_argument('-y','--year', action='store')
+    opt_args.add_argument('-a','--add_odds', action='store_true',default=False)
+    opt_args.add_argument('-b','--backtest_bankroll', action='store',default=False, type=float)
+    opt_args.add_argument('-t','--threshold', action='store',default=False, type=float)
     options=parser.parse_args()
     main(options)

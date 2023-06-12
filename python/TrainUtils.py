@@ -82,9 +82,8 @@ def encode_features(df: pd.DataFrame) -> pd.DataFrame:
 
 def add_odds(
         df: pd.DataFrame, 
-        nominal_vars: list[str],
         team_mapping: MissingDict
-    ) -> tuple[pd.DataFrame, list[str]]:
+    ) -> tuple[pd.DataFrame, list[str], list[str]]:
 
     files = glob.glob(f'{os.getcwd()}/data/odds/*.csv')
     odds_dfs = []
@@ -129,7 +128,7 @@ def add_odds(
         )
 
 
-    return df, nominal_vars + home_odds + away_odds
+    return df, home_odds, away_odds
 
 
 def add_lags(
@@ -203,5 +202,25 @@ def add_expanded_vars(
     
 
     return df, current_vars
+
+
+def kelly_critereon(row: pd.Series, h_odds:list, a_odds:list) -> float:
+    'get the best odds and apply KC to it'
+
+    #FIXME: could scan over this threshold and compute winnings as a function
+    if row['y_pred']>0.5: 
+         #remember model predicts prob of home team winning
+         odds = h_odds
+         prob = row['y_pred']
+    else:
+         #remember model predicts prob of home team winning
+         odds = a_odds
+         prob = 1-row['y_pred']
+
+    best_odds = max(row[odds]) - 1
+    numerator =  (best_odds * prob)
+    numerator -= (1-prob)
+
+    return numerator/best_odds
 
 

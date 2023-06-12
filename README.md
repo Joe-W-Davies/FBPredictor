@@ -29,14 +29,15 @@ The current best test accuracy is: 67.5%.
 
 
 
-## Predict upcoming matches
+## Backtest and predict upcoming matches 
 
-To make a prediction on each match in a given league e.g. the EPL:
+To make a prediction on each match in a given league e.g. the EPL in 2022:
 
 ```
-python3 scripts/predict.py --config configs/train_cfg.yaml -l "Premier League" --model models/model.json 
+python3 scripts/predict.py --config configs/train_cfg.yaml -l "Premier League" -y 2022 --model models/model.json (-b bankroll)
 ```
 
+The `-b` option backtests with the Kelly Critereon used as the betting strategy.
 
 
 
