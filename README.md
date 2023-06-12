@@ -29,15 +29,22 @@ The current best test accuracy is: 67.5%.
 
 
 
-## Backtest and predict upcoming matches 
+## Back test and predict upcoming matches 
 
+
+### predicting upcoming matched
 To make a prediction on each match in a given league e.g. the EPL in 2022:
 
 ```
-python3 scripts/predict.py --config configs/train_cfg.yaml -l "Premier League" -y 2022 --model models/model.json (-b bankroll)
+python3 scripts/predict.py --config configs/train_cfg.yaml -l "Premier League" -y 2022 --model models/model.json 
 ```
 
-The `-b` option backtests with the Kelly Critereon used as the betting strategy.
+### Back testing
+
+Adding the `-b [ammount]` option backtests with the Kelly Critereon used as the betting strategy. There is also the option to
+*  use this combo with the `-f` option to fix a bet at the ammount specified by `-b`, rather than updating the total i.e. assume same bank balance of `-b [ammount]` before each bet. This protects against vanishingly small pots with KC, but I guess is more risky.
+
+Note that the plot produced returns for 10 selected thresholds on the predicted probability (to select, say only bets you are really sure of)
 
 
 
