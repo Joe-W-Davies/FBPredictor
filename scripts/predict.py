@@ -5,6 +5,7 @@ import argparse
 import yaml
 from datetime import datetime
 import xgboost as xgb
+import matplotlib.pyplot as plt
 
 from TrainUtils import (
     change_dtypes, 
@@ -18,6 +19,8 @@ from TrainUtils import (
     add_expanded_vars,
     kelly_critereon
 )
+
+from PlotUtils import plot_returns
 
 #scrape 
 def main(options):
@@ -106,23 +109,64 @@ def main(options):
     final_train_vars = clf.feature_names
 
     if options.bankroll: 
-        #df = df.head(5)
         x_test  = df[final_train_vars] 
         d_test = xgb.DMatrix(x_test, feature_names=final_train_vars)
 
+        #FIXME: add scans ove different thresholds e.g. only bet when prob of an outcome is >0.9 -> will have to just skip cases where tre
         df['y_pred'] = clf.predict(d_test)
-        df['y_pred_class'] = np.select([df['y_pred'].gt(0.5)], [1], default=0) #FIXME: add threshold into here
-        df['win'] = np.select([df['y_pred_class'].eq(df['y_true'])], [1], default=-1)
-        df['bankroll_frac'] = df.apply(kelly_critereon, axis=1, args=[home_odds, away_odds]) #FIXME: add threshold into here too
+        df['y_pred_class'] = np.select([df['y_pred'].gt(0.5)], [1], default=0) #FIXME: add threshold into here (little trick since we have to first check if prob is < 0.5, and then do prob 1 - 0.5...?
+        df['win'] = np.select([df['y_pred_class'].eq(df['y_true'])], [1], default=0)
+        print(df[['team_str','opponent_str','y_pred','y_pred_class','y_true','win']].tail(10))
 
-        #drop cases where bet isn't advised
-        df = df.query('bankroll_frac>0')
-        df['bet'] = options.bankroll * df['bankroll_frac']
+        running_total = options.bankroll
+        totals = []
+        bankrupt = False
 
-        print(df[['team_str','opponent_str','y_pred','y_pred_class','y_true','win','bankroll_frac','bet']].head(50))
+        threshold = 0.6
+        
+        #not ideal to loop over rows but no other obvious way of using row n-1 in calcs
+        
+        for i_row, row in df.iterrows():
+            if row['y_pred']>0.5: 
+                 odds = home_odds
+                 prob = row['y_pred']
+            else:
+                 #remember model predicts prob of home team winning
+                 odds = away_odds
+                 prob = 1-row['y_pred']
 
-        net_winning = sum(df['bet'] * df['win'])
-        print(f'total net winning: {net_winning}')
+            #bake in some consevratism if needed
+            #if prob < threshold: continue
+
+            best_odds = max(row[odds]) - 1
+            numerator =  (best_odds * prob)
+            numerator -= (1-prob)
+
+            kc =  numerator/best_odds
+            bet = kc*running_total
+            bet_fixed = kc*options.bankroll
+            
+            if row['win']==1: 
+                if options.fixed: running_total += bet_fixed
+                else: running_total += bet
+            else: 
+                if options.fixed: running_total -= bet_fixed
+                else: running_total -= bet
+
+            totals.append(running_total)
+            
+            if not options.fixed and running_total < 0: 
+                bankrupt=True
+                break
+
+
+        if not bankrupt:
+            plot_returns(totals)
+            #FIXME show breakdown by leagues
+            #FIXME: show breakdown by prob thresholds
+            print(f'total net winnings: {running_total - options.bankroll}')
+        else: print(f'Bankrupt after {i_row+1} bets')
+
         
 
  
@@ -138,6 +182,7 @@ def main(options):
             opp = df_team['opponent_str'].values[0]
             date = df_team['date'].dt.date.values[0]
             print(f"probability of {team} winning against {opp} on {date} is {round(float(y_pred_test[0]),3)}")
+
    
 
 if __name__ == "__main__":
@@ -152,5 +197,6 @@ if __name__ == "__main__":
     opt_args.add_argument('-a','--add_odds', action='store_true',default=False)
     opt_args.add_argument('-b','--bankroll', action='store',default=False, type=float)
     opt_args.add_argument('-t','--threshold', action='store',default=False, type=float)
+    opt_args.add_argument('-f','--fixed', action='store_true',default=False)
     options=parser.parse_args()
     main(options)

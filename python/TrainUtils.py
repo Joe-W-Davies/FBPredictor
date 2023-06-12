@@ -206,8 +206,7 @@ def add_expanded_vars(
 
 def kelly_critereon(row: pd.Series, h_odds:list, a_odds:list) -> float:
     'get the best odds and apply KC to it'
-
-    #FIXME: could scan over this threshold and compute winnings as a function
+    print(row.name)
     if row['y_pred']>0.5: 
          #remember model predicts prob of home team winning
          odds = h_odds
@@ -221,6 +220,7 @@ def kelly_critereon(row: pd.Series, h_odds:list, a_odds:list) -> float:
     numerator =  (best_odds * prob)
     numerator -= (1-prob)
 
-    return numerator/best_odds
+    kc =  numerator/best_odds
+    return kc
 
 

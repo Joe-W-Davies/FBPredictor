@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 from sklearn.metrics import roc_auc_score, roc_curve
-import matplotlib
 import matplotlib.pyplot as plt
 import seaborn as sns
 import xgboost as xgb
@@ -161,14 +160,27 @@ def plot_shaps(
     plt.figure()
     shap.plots.beeswarm(shap_values, show=False)
     plt.tight_layout()
-    plt.savefig('plots/shapley_beeswarm.pdf', bbox_inches="tight")
+    plt.savefig('plots/shapley_beeswarm.pdf', bbox_inches='tight')
     print(' --> Saved plot: plots/shapley_beeswarm.pdf')
     plt.close()
 
     plt.figure()
     shap.plots.bar(shap_values, show=False)
     plt.tight_layout()
-    plt.savefig('plots/shapley_bar_chart.pdf', bbox_inches="tight")
+    plt.savefig('plots/shapley_bar_chart.pdf', bbox_inches='tight')
     print(' --> Saved plot: plots/shapley_bar_chart.pdf')
     plt.close() 
+
+def plot_returns(returns: list[float]) -> None:
+
+    fig  = plt.figure()
+    axes = fig.gca()
+    axes.plot(np.arange(0, len(returns), 1), returns)
+    axes.set_ylabel('Balance' , size=14, ha='right', y=1)
+    axes.set_xlabel('Bet number' , size=14, ha='right', x=1)
+    plt.savefig('plots/returns.pdf', bbox_inches='tight')
+    print(' --> Saved plot: plots/returns.pdf')
+    plt.close() 
+
+
 
