@@ -106,26 +106,22 @@ def main(options):
     final_train_vars = clf.feature_names
 
     if options.bankroll: 
-
+        #df = df.head(5)
         x_test  = df[final_train_vars] 
-        y_true  = df['y_true']
         d_test = xgb.DMatrix(x_test, feature_names=final_train_vars)
 
         df['y_pred'] = clf.predict(d_test)
         df['y_pred_class'] = np.select([df['y_pred'].gt(0.5)], [1], default=0) #FIXME: add threshold into here
-        df['win'] = (df['y_pred_class'] == y_true).astype(int)
+        df['win'] = np.select([df['y_pred_class'].eq(df['y_true'])], [1], default=-1)
         df['bankroll_frac'] = df.apply(kelly_critereon, axis=1, args=[home_odds, away_odds]) #FIXME: add threshold into here too
 
-        df['y_true'] = y_true
         #drop cases where bet isn't advised
         df = df.query('bankroll_frac>0')
         df['bet'] = options.bankroll * df['bankroll_frac']
 
         print(df[['team_str','opponent_str','y_pred','y_pred_class','y_true','win','bankroll_frac','bet']].head(50))
 
-        net_winning = sum((df['bet'] * df['win']) - (df['bet'] * df['win'].replace({0:1, 1:0})))
-        print(sum(df['bet'] * df['win'])) 
-        print(sum(df['bet'] * df['win'].replace({0:1, 1:0})))
+        net_winning = sum(df['bet'] * df['win'])
         print(f'total net winning: {net_winning}')
         
 
