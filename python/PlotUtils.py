@@ -171,16 +171,27 @@ def plot_shaps(
     print(' --> Saved plot: plots/shapley_bar_chart.pdf')
     plt.close() 
 
-def plot_returns(returns: list[float]) -> None:
+def plot_returns(df: pd.DataFrame, split_leagues=False, period='2W') -> None:
 
     fig  = plt.figure()
     axes = fig.gca()
-    axes.plot(np.arange(0, len(returns), 1), returns)
-    axes.set_ylabel('Balance' , size=14, ha='right', y=1)
-    axes.set_xlabel('Bet number' , size=14, ha='right', x=1)
+
+    #if split_leagues: #not sure how to do this atm since change and total won't work
+    #    for league in df.comp.unique():
+    #        return_per_comp = df.query(f"comp=='{league}'")
+    #        df_period = return_per_comp.groupby(return_per_comp['date'].dt.to_period(period))
+    #        axes.plot(df_period.last()['date'], df_period['return_diff'].sum(), label=league)
+
+    df_m_last = df.groupby(df['date'].dt.to_period(period)).last()
+    axes.plot(df_m_last['date'], df_m_last['rolling_return'], label='Total')
+    axes.legend(bbox_to_anchor=(0.99,0.99), prop={'size':9})
+
+    axes.set_ylabel('Balance' , size=11, ha='right', y=1)
+    axes.set_xlabel('Date' , size=11, ha='right', x=1)
+    axes.tick_params(axis='x', rotation=90)
+
     plt.savefig('plots/returns.pdf', bbox_inches='tight')
     print(' --> Saved plot: plots/returns.pdf')
-    plt.close() 
 
 
 

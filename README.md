@@ -29,10 +29,10 @@ The current best test accuracy is: 67.5%.
 
 
 
-## Back test and predict upcoming matches 
+## predict upcoming matches and back test
 
 
-### predicting upcoming matched
+### predicting upcoming matches
 To make a prediction on each match in a given league e.g. the EPL in 2022:
 
 ```

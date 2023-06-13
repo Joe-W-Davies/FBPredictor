@@ -112,22 +112,21 @@ def main(options):
         x_test  = df[final_train_vars] 
         d_test = xgb.DMatrix(x_test, feature_names=final_train_vars)
 
-        #FIXME: add scans ove different thresholds e.g. only bet when prob of an outcome is >0.9 -> will have to just skip cases where tre
         df['y_pred'] = clf.predict(d_test)
-        df['y_pred_class'] = np.select([df['y_pred'].gt(0.5)], [1], default=0) #FIXME: add threshold into here (little trick since we have to first check if prob is < 0.5, and then do prob 1 - 0.5...?
+        df['y_pred_class'] = np.select([df['y_pred'].gt(0.5)], [1], default=0)
         df['win'] = np.select([df['y_pred_class'].eq(df['y_true'])], [1], default=0)
-        print(df[['team_str','opponent_str','y_pred','y_pred_class','y_true','win']].tail(10))
+        #print(df[['team_str','opponent_str','y_pred','y_pred_class','y_true','win']].tail(10))
 
         running_total = options.bankroll
-        totals = []
         bankrupt = False
 
-        threshold = 0.6
         
-        #not ideal to loop over rows but no other obvious way of using row n-1 in calcs
-        
+        df = df.sort_values('date')
+        #cumulative return
+        totals = []
+        #not ideal to loop over rows 
         for i_row, row in df.iterrows():
-            if row['y_pred']>0.5: 
+            if row['y_pred']>0.5:
                  odds = home_odds
                  prob = row['y_pred']
             else:
@@ -135,25 +134,26 @@ def main(options):
                  odds = away_odds
                  prob = 1-row['y_pred']
 
-            #bake in some consevratism if needed
-            #if prob < threshold: continue
+            numerator = (1-prob)
+            best_odds = max(row[odds])# - 1 dont think there should be a -1 here
+            kc =  prob - (numerator/best_odds)
 
-            best_odds = max(row[odds]) - 1
-            numerator =  (best_odds * prob)
-            numerator -= (1-prob)
-
-            kc =  numerator/best_odds
             bet = kc*running_total
             bet_fixed = kc*options.bankroll
             
             if row['win']==1: 
-                if options.fixed: running_total += bet_fixed
-                else: running_total += bet
+                if options.fixed: 
+                    running_total += bet_fixed*best_odds
+                else: 
+                    running_total += bet*best_odds
             else: 
-                if options.fixed: running_total -= bet_fixed
-                else: running_total -= bet
+                if options.fixed: 
+                    running_total -= bet_fixed
+                else: 
+                    running_total -= bet
 
             totals.append(running_total)
+            
             
             if not options.fixed and running_total < 0: 
                 bankrupt=True
@@ -161,11 +161,11 @@ def main(options):
 
 
         if not bankrupt:
-            plot_returns(totals)
-            #FIXME show breakdown by leagues
-            #FIXME: show breakdown by prob thresholds
+            df['rolling_return'] = totals
+            plot_returns(df, split_leagues=True)
             print(f'total net winnings: {running_total - options.bankroll}')
-        else: print(f'Bankrupt after {i_row+1} bets')
+        else: print(f'Bankrupt')
+
 
         
 
