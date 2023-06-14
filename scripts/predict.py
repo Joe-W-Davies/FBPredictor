@@ -36,7 +36,7 @@ def main(options):
 
     dfs = []
     for df_name in datasets:
-        dfs.append( pd.read_csv(f"data/{df_name}", index_col=0) )
+        dfs.append( pd.read_csv(f"data/leagues/{df_name}", index_col=0) )
     df = pd.concat(dfs)
     
     #data cleaning and filtering

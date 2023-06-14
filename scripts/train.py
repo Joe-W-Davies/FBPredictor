@@ -44,7 +44,7 @@ def main(options):
 
     dfs = []
     for df_name in datasets:
-        dfs.append( pd.read_csv(f"data/{df_name}", index_col=0) )
+        dfs.append( pd.read_csv(f"data/leagues/{df_name}", index_col=0) )
     df = pd.concat(dfs)
 
     
@@ -154,7 +154,8 @@ def main(options):
         )
 
     if options.feature_select:
-        final_train_vars = BorutaShap(x_train, 
+        final_train_vars = BorutaShap(
+            x_train, 
             y_train, 
             final_train_vars, 
             np.ones_like(y_train), 

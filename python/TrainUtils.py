@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
 import glob 
-import os
 
 class MissingDict(dict):
   __missing__ = lambda self, key:key
@@ -11,7 +10,7 @@ def impute_nulls(
         df: pd.DataFrame, 
         train_vars: list[str], 
         impute: bool=False
-    ) -> pd.DataFrame:
+) -> pd.DataFrame:
 
     #sometimes possesion info etc just wasn't filled in on the site. 
     #if impute, impute from avgs of similar rows. Tends not to make too much diff to final outputs
@@ -83,9 +82,9 @@ def encode_features(df: pd.DataFrame) -> pd.DataFrame:
 def add_odds(
         df: pd.DataFrame, 
         team_mapping: MissingDict
-    ) -> tuple[pd.DataFrame, list[str], list[str]]:
+) -> tuple[pd.DataFrame, list[str], list[str]]:
 
-    files = glob.glob(f'{os.getcwd()}/data/odds/*.csv')
+    files = glob.glob('data/odds/*.csv')
     odds_dfs = []
     
     for fn in files:
@@ -135,7 +134,7 @@ def add_lags(
         df: pd.DataFrame, 
         n_days: list[int], 
         current_vars: set[str]
-    ) -> tuple[pd.DataFrame, set[str]]:
+) -> tuple[pd.DataFrame, set[str]]:
 
 
     lags = [x+1 for x in range(n_days)]
@@ -156,7 +155,7 @@ def add_rolling_vars(
         n_days: list[int], 
         current_vars: set[str],
         train_vars_to_roll: list
-    ) -> tuple[pd.DataFrame, set[str]]:
+) -> tuple[pd.DataFrame, set[str]]:
 
 
     rolled_dfs = []
@@ -187,7 +186,7 @@ def add_expanded_vars(
         df: pd.DataFrame, 
         current_vars: set[str],
         train_vars_to_roll: list,
-    ) -> tuple[pd.DataFrame, set[str]]:
+) -> tuple[pd.DataFrame, set[str]]:
 
 
     expanded_dfs = []

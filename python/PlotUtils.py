@@ -14,7 +14,7 @@ def plot_roc(
         y_pred_train: np.ndarray, 
         y_test: np.ndarray,
         y_pred_test: np.ndarray
-    ) -> None:
+) -> None:
 
     loss_eff_train, win_eff_train, _ = roc_curve(y_train, y_pred_train)
     loss_eff_test, win_eff_test, _ = roc_curve(y_test, y_pred_test)
@@ -65,7 +65,7 @@ def plot_roc(
 def plot_confusion_matrix(
         y_test: np.ndarray, 
         y_pred_test_class: np.ndarray
-    ) -> None:
+) -> None:
 
     trues_preds_test = pd.DataFrame({'actual':y_test, 
                                      'prediction':y_pred_test_class}
@@ -92,7 +92,7 @@ def plot_input(
         y_true: np.ndarray, 
         normalise: bool=False, 
         log: bool=False
-    ) -> None:
+) -> None:
 
     fig  = plt.figure()
     axes = fig.gca()
@@ -118,7 +118,7 @@ def plot_output_score(
         y_pred_test: np.ndarray, 
         normalise: bool=False, 
         log: bool=False
-    ) -> None:
+) -> None:
 
     fig  = plt.figure()
     axes = fig.gca()
@@ -150,7 +150,7 @@ def plot_shaps(
     clf: xgb.XGBClassifier, 
     x_test: np.ndarray, 
     train_vars: list[str]
-    ) -> None:
+) -> None:
 
     #shap plots
     explainer = shap.Explainer(clf)
@@ -171,7 +171,11 @@ def plot_shaps(
     print(' --> Saved plot: plots/shapley_bar_chart.pdf')
     plt.close() 
 
-def plot_returns(df: pd.DataFrame, split_leagues=False, period='2W') -> None:
+def plot_returns(
+    df: pd.DataFrame, 
+    split_leagues=False, 
+    period='2W'
+) -> None:
 
     fig  = plt.figure()
     axes = fig.gca()

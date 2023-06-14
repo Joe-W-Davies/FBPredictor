@@ -41,10 +41,7 @@ python3 scripts/predict.py --config configs/train_cfg.yaml -l "Premier League" -
 
 ### Back testing
 
-Adding the `-b [ammount]` option backtests with the Kelly Critereon used as the betting strategy. There is also the option to
-*  use this combo with the `-f` option to fix a bet at the ammount specified by `-b`, rather than updating the total i.e. assume same bank balance of `-b [ammount]` before each bet. This protects against vanishingly small pots with KC, but I guess is more risky.
-
-Note that the plot produced returns for 10 selected thresholds on the predicted probability (to select, say only bets you are really sure of)
+Adding the `-b [ammount]` option backtests with the Kelly Critereon used as the betting strategy. There is also the option to use this combo with the `-f` option to fix a bet at the ammount specified by `-b`, rather than updating the total i.e. assume same bank balance of `-b [ammount]` before each bet. This is less risky if the updated pot gets larger.
 
 
 
@@ -53,19 +50,18 @@ Note that the plot produced returns for 10 selected thresholds on the predicted 
 * check if BundesLiga matches are somehow being scraped in EPL 
 
 ### To-Do's: model training
+* Try and 3 class model for predicting draws too
 * remove hard coding on train/test split date
 * Plot inputs and make correlation map (separate script?)
-* plot output scores (separate script?)
-* put plotting code into functions
 * Try different models
 * debug why some rows are lost in training join
 
 ### To-Do's: betting strategy
-* add script to simulate Kelly Criterion and Expected Value Analysis (and both being >0) for past games
+* consider how to quantify an uncertainty on the game probs
 
 ### To-Do's: general
 * go through all FIXME's
 * think about whether to drop either home/away match to prevent double same info being fed twice (FYI done autoamticaly if joinining odds info in)
 * fix issue with having to scrape data and re-run workflow each time you want to predict
 * add docstrings
-* scrape live odds for upcoming matches if adding these features in
+* scrape live odds for upcoming matches if adding these features to models
