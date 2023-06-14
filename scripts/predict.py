@@ -83,12 +83,13 @@ def main(options):
 
     #add opponnent info in
     df['opponent'] = df['opponent'].map(team_mapping)
-    df = df.merge(df[running_features+['date']], 
-                  left_on=["date", "team"], 
-                  right_on=["date", "opponent"], 
-                  suffixes=("","_opp"),
-                  how='inner'
-                  )
+    df = df.merge(
+       df[running_features+['date']], 
+       left_on=["date", "team"], 
+       right_on=["date", "opponent"], 
+       suffixes=("","_opp"),
+       how='inner'
+    )
 
     #add odds (must be done after above else you lose opp info)
     if options.add_odds or options.bankroll:
@@ -113,37 +114,47 @@ def main(options):
         d_test = xgb.DMatrix(x_test, feature_names=final_train_vars)
 
         df['y_pred'] = clf.predict(d_test)
-        df['y_pred_class'] = np.select([df['y_pred'].gt(0.5)], [1], default=0)
-        df['win'] = np.select([df['y_pred_class'].eq(df['y_true'])], [1], default=0)
-        #print(df[['team_str','opponent_str','y_pred','y_pred_class','y_true','win']].tail(10))
+        df['y_pred_class'] = np.select(
+            [df['y_pred'].gt(0.5)], 
+            [1], 
+            default=0
+        )
+
+        df['win'] = np.select(
+            [df['y_pred_class'].eq(df['y_true'])], 
+            [1], 
+            default=0
+        )
 
         running_total = options.bankroll
         bankrupt = False
-
-        
         df = df.sort_values('date')
-        #cumulative return
-        totals = []
+
+        #print(df[['team_str','opponent_str','y_pred','y_pred_class','B365H','B365A','y_true','win']].head(10)) #debug
+
+        cum_return = []
+
         #not ideal to loop over rows 
         for i_row, row in df.iterrows():
-            if row['y_pred']>0.5:
+            if row['y_pred_class']==1:
                  odds = home_odds
                  prob = row['y_pred']
             else:
-                 #remember model predicts prob of home team winning
+                 #remember model predicts prob of !home! team winning
                  odds = away_odds
                  prob = 1-row['y_pred']
 
             numerator = (1-prob)
-            best_odds = max(row[odds])# - 1 dont think there should be a -1 here
+            best_odds = max(row[odds])
             kc =  prob - (numerator/best_odds)
-
-            bet = kc*running_total
-            bet_fixed = kc*options.bankroll
             
+            if options.fixed: 
+                bet_fixed = kc*options.bankroll
+            else: bet = kc*running_total
+
             if row['win']==1: 
                 if options.fixed: 
-                    running_total += bet_fixed*best_odds
+                    running_total += bet_fixed*best_odds #no need to subtract stake as decimal odds
                 else: 
                     running_total += bet*best_odds
             else: 
@@ -152,24 +163,19 @@ def main(options):
                 else: 
                     running_total -= bet
 
-            totals.append(running_total)
-            
+            cum_return.append(running_total)
             
             if not options.fixed and running_total < 0: 
                 bankrupt=True
                 break
 
-
         if not bankrupt:
-            df['rolling_return'] = totals
+            df['rolling_return'] = cum_return
             plot_returns(df, split_leagues=True)
             print(f'total net winnings: {running_total - options.bankroll}')
         else: print(f'Bankrupt')
 
 
-        
-
- 
     else:
         for team in df['team'].unique():
             df_team = df.query(f"team=={team}")
