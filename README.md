@@ -23,8 +23,7 @@ python3 scripts/train.py -c configs/train_cfg.yaml (--feature_select) (--hp_opt)
 
 There are many features to train with - if you want to reduce them, try running with a modified Boruta-SHAP algo by adding the option `--feature_select`. To optimise the model hyperparameters, add the `--hp_opt` option. To add info on betting odds from [football-data.co.uk](https://www.football-data.co.uk), add the `-a` option.
 
-
-The current best test accuracy is: 67.5%.
+The current best test accuracy is: 67.5%. For thee class models that predict draws (see branch: `three_class`, the best accuracy is around 53%). 
 
 
 
@@ -42,6 +41,9 @@ python3 scripts/predict.py --config configs/train_cfg.yaml -l "Premier League" -
 ### Back testing
 
 Adding the `-b [ammount]` option backtests with the Kelly Critereon used as the betting strategy. There is also the option to use this combo with the `-f` option to fix a bet at the ammount specified by `-b`, rather than updating the total i.e. assume same bank balance of `-b [ammount]` before each bet. This is less risky if the updated pot gets larger.
+
+
+Using KC on the realistic three class scenarios gives positive but small returns over bookies.
 
 
 
