@@ -145,8 +145,12 @@ def main(options):
                  prob = 1-row['y_pred']
 
             numerator = (1-prob)
-            best_odds = max(row[odds])
+            best_odds = max(row[odds]) - 1
             kc =  prob - (numerator/best_odds)
+            if kc<0: 
+                cum_return.append(cum_return[-1])
+                continue
+                
             
             if options.fixed: 
                 bet_fixed = kc*options.bankroll
@@ -164,6 +168,13 @@ def main(options):
                     running_total -= bet
 
             cum_return.append(running_total)
+            #print(f"kc: {kc} bet: {bet}, prob: {prob}, odds: {best_odds}") #debug
+            #print(row[['team_str','opponent_str','B365H','B365A','y_pred_class','y_true','win']])
+            #print(f'change in total for win: {bet*best_odds}')
+            #print(f'change in total for loss: {bet}')
+            #print(f"running total: {running_total}") #debug
+            #print()
+            #if i_row>25: sys.exit(1)
             
             if not options.fixed and running_total < 0: 
                 bankrupt=True
@@ -172,7 +183,7 @@ def main(options):
         if not bankrupt:
             df['rolling_return'] = cum_return
             plot_returns(df, split_leagues=True)
-            print(f'total net winnings: {running_total - options.bankroll}')
+            print(f'total returns: {running_total}')
         else: print(f'Bankrupt')
 
 
