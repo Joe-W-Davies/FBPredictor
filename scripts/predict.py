@@ -47,7 +47,8 @@ def main(options):
     df = create_time_features(df)
 
     #add target column
-    df['y_true'] = (df['result']=='W').astype('int8')
+    #df['y_true'] = (df['result']=='W').astype('int8')
+    df['y_true'] = df['result'].astype('category').cat.codes
     #FIXME: probs need to impute NA's as well since we did this in the training
 
 
@@ -93,7 +94,7 @@ def main(options):
 
     #add odds (must be done after above else you lose opp info)
     if options.add_odds or options.bankroll:
-        df, home_odds, away_odds = add_odds(df, team_mapping)
+        df, home_odds, away_odds, draw_odds = add_odds(df, team_mapping)
 
     df = encode_features(df)
     
@@ -104,6 +105,7 @@ def main(options):
     else: df = df[df['date'] >= f'{current_date}']
 
     #load model
+    #clf = xgb.XGBClassifier()
     clf = xgb.Booster()
     clf.load_model(f'{options.model}')
     print(f'loaded model from: {options.model}')
@@ -113,12 +115,12 @@ def main(options):
         x_test  = df[final_train_vars] 
         d_test = xgb.DMatrix(x_test, feature_names=final_train_vars)
 
-        df['y_pred'] = clf.predict(d_test)
-        df['y_pred_class'] = np.select(
-            [df['y_pred'].gt(0.5)], 
-            [1], 
-            default=0
-        )
+        probs = clf.predict(d_test)
+        df['draw_prob'] = probs[:, 0]
+        df['lose_prob'] = probs[:, 1]
+        df['win_prob'] =  probs[:, 2]
+        df['y_pred_class'] = np.argmax(clf.predict(d_test))
+        #print(df[['y_pred','result', 'y_true']])
 
         df['win'] = np.select(
             [df['y_pred_class'].eq(df['y_true'])], 
@@ -134,22 +136,30 @@ def main(options):
 
         cum_return = []
 
+        #0=draw, 1 = home loss, 2= home win
         #not ideal to loop over rows 
         for i_row, row in df.iterrows():
-            if row['y_pred_class']==1:
-                 odds = home_odds
-                 prob = row['y_pred']
-            else:
-                 #remember model predicts prob of !home! team winning
+
+            if row['y_pred_class']==0:
+                 odds = draw_odds
+                 prob = row['draw_prob']
+            elif row['y_pred_class']==1:
                  odds = away_odds
-                 prob = 1-row['y_pred']
+                 prob = row['lose_prob']
+            else:
+                 odds = home_odds
+                 prob = row['win_prob']
 
             numerator = (1-prob)
             best_odds = max(row[odds]) - 1
             kc =  prob - (numerator/best_odds)
             if kc<0: 
-                cum_return.append(cum_return[-1])
-                continue
+                if i_row==0: 
+                    cum_return.append(0)
+                    continue
+                else:
+                    cum_return.append(cum_return[-1])
+                    continue
                 
             
             if options.fixed: 

@@ -4,7 +4,7 @@ import yaml
 import pandas as pd
 import numpy as np
 import xgboost as xgb
-from sklearn.metrics import roc_auc_score, roc_curve, accuracy_score
+from sklearn.metrics import accuracy_score
 from sklearn.model_selection import TimeSeriesSplit, RandomizedSearchCV
 from scipy.stats import uniform
 
@@ -21,7 +21,6 @@ from TrainUtils import (
 )
 
 from PlotUtils import (
-    plot_roc,
     plot_confusion_matrix,
     plot_output_score,
     plot_shaps,
@@ -59,7 +58,8 @@ def main(options):
     print(f'after cleaning, df has: {df.duplicated(keep=False).sum()} duplicate rows')
 
     #add target column
-    df['y_true'] = (df['result']=='W').astype('int8')
+    #df['y_true'] = (df['result']=='W').astype('int8')
+    df['y_true'] = df['result'].astype('category').cat.codes
 
     #add features
     running_features = set()
@@ -102,8 +102,8 @@ def main(options):
 
     #add odds (must be done after above else you lose opp info)
     if options.add_odds:
-        df, home_odds, away_odds = add_odds(df, team_mapping)
-        nominal_vars = nominal_vars + home_odds + away_odds
+        df, home_odds, away_odds, draw_odds = add_odds(df, team_mapping)
+        nominal_vars = nominal_vars + home_odds + away_odds + draw_odds
 
     df = encode_features(df)
     
@@ -129,13 +129,14 @@ def main(options):
         
         # Set up a time series cross-validation 
         ts_cv = TimeSeriesSplit(n_splits=3)
-        clf = xgb.XGBClassifier(objective='binary:logistic')
+        #clf = xgb.XGBClassifier(objective='binary:logistic')
+        clf = xgb.XGBClassifier(objective='multi:softprob')
         
         grid_search = RandomizedSearchCV(
             clf,
             params,
             cv=ts_cv,
-            scoring='roc_auc',
+            scoring='accuracy',
             n_iter=500,
             verbose=3
         )
@@ -147,9 +148,9 @@ def main(options):
     
     else:
         #chose reasonable parameters and train with them
-        train_params = {'n_estimators':100, 'eta':0.05, 'max_depth':4}
+        train_params = {'n_estimators':30, 'eta':0.1, 'max_depth':3}
         clf = xgb.XGBClassifier(
-            objective='binary:logistic', 
+            objective='multi:softprob', 
             **train_params
         )
 
@@ -176,16 +177,16 @@ def main(options):
     y_pred_train = clf.predict_proba(x_train)[:,1:].ravel() 
     y_pred_test = clf.predict_proba(x_test)[:,1:].ravel()
     
-    baseline_roc = roc_auc_score(y_test, x_test['venue'])
-    print(f'baseline roc_score {baseline_roc}')
-    print(f'train roc_score: {roc_auc_score(y_train, y_pred_train)}')
-    print(f'test roc_score: {roc_auc_score(y_test, y_pred_test)}')
+    #baseline_roc = roc_auc_score(y_test, x_test['venue'])
+    #print(f'baseline roc_score {baseline_roc}')
+    #print(f'train roc_score: {roc_auc_score(y_train, y_pred_train)}')
+    #print(f'test roc_score: {roc_auc_score(y_test, y_pred_test)}')
     
     print()
     
     #predict classes
-    baseline_acc = accuracy_score(y_test, x_test['venue'])
-    print(f'baseline accuracy {baseline_acc}')
+    #baseline_acc = accuracy_score(y_test, x_test['venue'])
+    #print(f'baseline accuracy {baseline_acc}')
     y_pred_train_class = clf.predict(x_train) 
     y_pred_test_class = clf.predict(x_test)
     print(f'train accuracy: {accuracy_score(y_train, y_pred_train_class)}')
@@ -194,14 +195,14 @@ def main(options):
     #save model
     if options.save_model:
         bstr = clf.get_booster()
-        bstr.save_model('models/model.json')
-        print ("Saved classifier as: models/model.json")
+        bstr.save_model('models/model_three_c.json')
+        print ("Saved classifier as: models/model_three_c.json")
 
     #make some plots
-    plot_roc(clf, y_train, y_pred_train, y_test, y_pred_test)
+    #plot_roc(clf, y_train, y_pred_train, y_test, y_pred_test)
     plot_confusion_matrix(y_test, y_pred_test_class)
-    plot_output_score(y_test, y_pred_test)
-    plot_shaps(clf, x_test, final_train_vars)
+    #plot_output_score(y_test, y_pred_test)
+    #plot_shaps(clf, x_test, final_train_vars)
    
 
 if __name__ == "__main__":

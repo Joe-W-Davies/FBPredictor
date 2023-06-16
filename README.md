@@ -26,6 +26,8 @@ There are many features to train with - if you want to reduce them, try running 
 
 The current best test accuracy is: 67.5%.
 
+See the `three_class` branch for predicting draws as well. The accuracy for that classifier is around 53%.
+
 
 
 
@@ -50,7 +52,6 @@ Adding the `-b [ammount]` option backtests with the Kelly Critereon used as the 
 * check if BundesLiga matches are somehow being scraped in EPL 
 
 ### To-Do's: model training
-* Try and 3 class model for predicting draws too
 * remove hard coding on train/test split date
 * Plot inputs and make correlation map (separate script?)
 * Try different models
