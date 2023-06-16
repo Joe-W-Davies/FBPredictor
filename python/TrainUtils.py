@@ -100,10 +100,11 @@ def add_odds(
     odds_providers = ['B365', 'BW', 'IW', 'PS', 'WH', 'VC']
     home_odds = [op+'H' for op in odds_providers]
     away_odds = [op+'A' for op in odds_providers]
+    draw_odds = [op+'D' for op in odds_providers]
     
     #FIXME: check this dt matches up with other one
     odds['date'] = pd.to_datetime(odds['Date'], dayfirst=True)
-    odds = odds[home_odds + away_odds + ['date','HomeTeam','Div']].dropna(axis='rows')
+    odds = odds[home_odds + away_odds + draw_odds + ['date','HomeTeam','Div']].dropna(axis='rows')
 
 
     odds['HomeTeam'] = odds['HomeTeam'].map(team_mapping)
@@ -127,7 +128,7 @@ def add_odds(
         )
 
 
-    return df, home_odds, away_odds
+    return df, home_odds, away_odds, draw_odds
 
 
 def add_lags(

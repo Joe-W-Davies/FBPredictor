@@ -93,7 +93,7 @@ def main(options):
 
     #add odds (must be done after above else you lose opp info)
     if options.add_odds or options.bankroll:
-        df, home_odds, away_odds = add_odds(df, team_mapping)
+        df, home_odds, away_odds, draw_odds = add_odds(df, team_mapping)
 
     df = encode_features(df)
     
