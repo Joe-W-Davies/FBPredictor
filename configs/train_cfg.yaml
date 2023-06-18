@@ -6,7 +6,7 @@ train_vars_to_roll:
          'totdist','prgdist','ast','xag','xa','kp','1/3','ppa','crspa','prgp',
          'gls','sh','sot','sot%','g/sh','g/sot','dist','fk','pk','pkatt','xg','npxg',
          'npxg/sh','g-xg','np:g-xg','gf','ga',
-         'y_true'
+         #'y_true' #cant average this for 3 class
         ]
 
 datasets:

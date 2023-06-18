@@ -193,7 +193,7 @@ def main(options):
         if not bankrupt:
             df['rolling_return'] = cum_return
             plot_returns(df, split_leagues=True)
-            print(f'total returns: {running_total}')
+            print(f'total return: {running_total-options.bankroll}')
         else: print(f'Bankrupt')
 
 
