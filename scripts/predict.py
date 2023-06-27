@@ -29,6 +29,7 @@ def main(options):
         config = yaml.load(config_file, Loader=yaml.SafeLoader)
         train_vars_to_roll = config['train_vars_to_roll']
         nominal_vars = config['nominal_vars']
+        more_odds_vars = config['more_odds_vars']
         team_mapping = MissingDict(**config['team_mapping'])
         datasets = config['datasets']
         n_days_lag = config['n_days_lag']
@@ -94,7 +95,7 @@ def main(options):
 
     #add odds (must be done after above else you lose opp info)
     if options.add_odds or options.bankroll:
-        df, home_odds, away_odds, draw_odds = add_odds(df, team_mapping)
+        df, home_odds, away_odds, draw_odds, more_odds_vars = add_odds(df, team_mapping, more_odds_vars)
 
     df = encode_features(df)
     

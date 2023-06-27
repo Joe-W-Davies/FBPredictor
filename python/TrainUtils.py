@@ -81,8 +81,10 @@ def encode_features(df: pd.DataFrame) -> pd.DataFrame:
 
 def add_odds(
         df: pd.DataFrame, 
-        team_mapping: MissingDict
+        team_mapping: MissingDict,
+        more_odds_vars: list[str]
 ) -> tuple[pd.DataFrame, list[str], list[str]]:
+
 
     files = glob.glob('data/odds/*.csv')
     odds_dfs = []
@@ -101,14 +103,18 @@ def add_odds(
     home_odds = [op+'H' for op in odds_providers]
     away_odds = [op+'A' for op in odds_providers]
     draw_odds = [op+'D' for op in odds_providers]
+
+    #odds[more_odds_vars].info()
+
+    odds_vars_subbed = {x: x.replace(r'>', '__').replace(r'<', '_') for x in more_odds_vars}
+    #print(odds_vars_subbed)
     
-    #FIXME: check this dt matches up with other one
+
     odds['date'] = pd.to_datetime(odds['Date'], dayfirst=True)
-    odds = odds[home_odds + away_odds + draw_odds + ['date','HomeTeam','Div']].dropna(axis='rows')
-
-
+    odds = odds[home_odds + away_odds + draw_odds + more_odds_vars + ['date','HomeTeam','Div']].dropna(axis='rows')
     odds['HomeTeam'] = odds['HomeTeam'].map(team_mapping)
-
+    odds = odds.rename(columns=odds_vars_subbed)
+    more_odds_vars = list(odds_vars_subbed.values())
 
     #DEBUGs
     #l2 = odds['HomeTeam'].unique()
@@ -125,10 +131,10 @@ def add_odds(
         right_on=["date", "HomeTeam"], 
         suffixes=("","_opp"),
         how='inner'
-        )
+    )
 
 
-    return df, home_odds, away_odds, draw_odds
+    return df, home_odds, away_odds, draw_odds, more_odds_vars
 
 
 def add_lags(
@@ -144,6 +150,7 @@ def add_lags(
         gr = group[-1].sort_values(['date'])
         for lag in lags:
             gr[f'lag_{lag}'] = gr['y_true'].copy().shift(lag)
+            #add opponent in as a lag so it lines up with the game. Give info: hard opponent, no win
             current_vars.add(f'lag_{lag}')
         lagged_dfs.append(gr)
     df = pd.concat(lagged_dfs, ignore_index=True) 

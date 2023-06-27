@@ -47,7 +47,7 @@ def main(options):
                 match_info = pd.read_html(
                     match_data.text, 
                     match='Scores & Fixtures'
-                    )
+                )
                 #can return more than 1 table for some reason so get [0]
                 team_data_df = match_info[0] 
                 team_data_df = team_data_df[match_vars] 
@@ -55,18 +55,18 @@ def main(options):
                     
                 #get additional stats for a single team
                 #Can also write a yaml linking possesion vars -> [var1, var2, var3, ...]
-                for extra_table in extra_tables_name_to_var.keys():
-                    original_rows = team_data_df.shape[0] 
+                for extra_table_name, extra_table_map in extra_tables_name_to_var.items():
                     extra_df = get_extra_info(
                         match_data=match_data, 
-                        table_type=extra_table
-                        )
-                    extra_vars = extra_tables_name_to_var[extra_table]
+                        table_type=extra_table_name,
+                        level_map=extra_table_map
+                    )
+
     
                     #Date will be a unique ID for that team since can't play 2 matches in the same day
                     try:
                         team_data_df = team_data_df.merge(
-                            extra_df[extra_vars], 
+                            extra_df, 
                             on="Date", 
                             how='left'
                             )
@@ -86,10 +86,10 @@ def main(options):
         total_df.columns = [c.lower() for c in total_df.columns]
 
         with open(
-                  f'data/match_data_{league_name}_to_predict.csv', 
-                  'w+', 
-                  encoding = 'utf-8-sig'
-                 ) as f:
+                f'data/match_data_{league_name}_more_vars.csv', 
+                'w+', 
+                encoding = 'utf-8-sig'
+        ) as f:
             total_df.to_csv(f)
 
 if __name__ == "__main__":

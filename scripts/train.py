@@ -35,6 +35,7 @@ def main(options):
         config = yaml.load(config_file, Loader=yaml.SafeLoader)
         nominal_vars = config['nominal_vars']
         train_vars_to_roll = config['train_vars_to_roll']
+        more_odds_vars = config['more_odds_vars']
         team_mapping = MissingDict(**config['team_mapping'])
         datasets = config['datasets']
         filters = config['filters']
@@ -58,7 +59,6 @@ def main(options):
     print(f'after cleaning, df has: {df.duplicated(keep=False).sum()} duplicate rows')
 
     #add target column
-    #df['y_true'] = (df['result']=='W').astype('int8')
     df['y_true'] = df['result'].astype('category').cat.codes
 
     #add features
@@ -102,8 +102,8 @@ def main(options):
 
     #add odds (must be done after above else you lose opp info)
     if options.add_odds:
-        df, home_odds, away_odds, draw_odds = add_odds(df, team_mapping)
-        nominal_vars = nominal_vars + home_odds + away_odds + draw_odds
+        df, home_odds, away_odds, draw_odds, more_odds_vars = add_odds(df, team_mapping, more_odds_vars)
+        nominal_vars = nominal_vars + home_odds + away_odds + draw_odds + more_odds_vars
 
     df = encode_features(df)
     
@@ -129,7 +129,6 @@ def main(options):
         
         # Set up a time series cross-validation 
         ts_cv = TimeSeriesSplit(n_splits=3)
-        #clf = xgb.XGBClassifier(objective='binary:logistic')
         clf = xgb.XGBClassifier(objective='multi:softprob')
         
         grid_search = RandomizedSearchCV(
