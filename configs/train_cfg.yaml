@@ -1,17 +1,76 @@
 nominal_vars : 
         ['team','hours','day','opponent','formation', 'venue','days_since_game'] #might need to remove formation if can't get access to it for upcoming games
 
-train_vars_to_roll: 
-        ['poss','touches','def pen','def 3rd', 'mid 3rd', 'att 3rd', 'att pen', 'live',
-         'totdist','prgdist','ast','xag','xa','kp','1/3','ppa','crspa','prgp',
-         'gls','sh','sot','sot%','g/sh','g/sot','dist','fk','pk','pkatt','xg','npxg',
-         'npxg/sh','g-xg','np:g-xg','gf','ga',
-         #'y_true' #cant average this for 3 class
+#other odds vars to add in alongside home win, away win, and draw. Note not available for all matches (esp not for 2019 and before),
+# and no real improvement from using them so just leave as empty list now
+more_odds_vars:
+        [ #'MaxH','MaxD','MaxA','AvgH','AvgD','AvgA',
+          #'B365>2.5','B365<2.5','P>2.5','P<2.5','Max>2.5','Max<2.5','Avg>2.5','Avg<2.5',
+          #'AHh','B365AHH','B365AHA','PAHH','PAHA','MaxAHH','MaxAHA',
+          #'AvgAHH','AvgAHA','B365CH','B365CD','B365CA','BWCH','BWCD','BWCA',
+          #'IWCH','IWCD','IWCA','PSCA','WHCH','WHCD','WHCA','VCCH','VCCD',
+          #'VCCA','MaxCH','MaxCD','MaxCA','AvgCH','AvgCD','AvgCA',
+          #'B365C>2.5','B365C<2.5','PC>2.5','PC<2.5',
+          #'MaxC>2.5','MaxC<2.5','AvgC>2.5','AvgC<2.5','AHCh',
+          #'B365CAHH','B365CAHA','PCAHH','PCAHA','MaxCAHH','MaxCAHA','AvgCAHH','AvgCAHA'
         ]
 
+train_vars_to_roll: 
+        'GCA': ['SCA Types': ['SCA','PassLive','PassDead','TO','Sh','Fld','Def'],
+                'GCA Types': ['GCA','PassLive','PassDead','TO','Sh','Fld','Def'],
+               ]
+        'Misc': ['Performance': ['CrdY','CrdR','2CrdY','Fls','Fld','Off','Int','TklW','Recov'],
+                 'Aerial Duels': ['Won','Lost','Won%']
+                ]
+        'Defense': ['Tackles': ['Tkl', 'TklW','Def 3rd','Mid 3rd','Att 3rd'],
+                              'Challenges': ['Tkl','Att','Tkl%','Lost'],
+                              'Blocks': ['Blocks','Sh','Pass'],
+                              'Unnamed: 22_level_0': ['Int'], 
+                              'Unnamed: 23_level_0': ['Tkl+Int'], 
+                              'Unnamed: 24_level_0': ['Clr'], 
+                              'Unnamed: 25_level_0': ['Err'], 
+                             ]
+        'Passing': ['Total': ['Cmp', 'Att', 'Cmp%','TotDist','PrgDist'], 
+                   'Short': ['Cmp','Att', 'Cmp%'],
+                   'Medium': ['Cmp', 'Att', 'Cmp%'],
+                   'Long': ['Cmp','Att','Cmp%'],
+                   'Unnamed: 24_level_0': ['Ast'],
+                   'Unnamed: 25_level_0': ['xAG'],
+                   'Unnamed: 26_level_0': ['xA'],
+                   'Unnamed: 27_level_0': ['KP'],
+                   'Unnamed: 28_level_0': ['1/3'],
+                   'Unnamed: 29_level_0': ['PPA'],
+                   'Unnamed: 30_level_0': ['CrsPA'],
+                   'Unnamed: 31_level_0': ['PrgP'],
+                   ]
+        'Passing_Types': ['Pass Types': ['Live', 'Dead','FK','TB','Sw','Crs','TI','CK'],
+                          'Corner Kicks': ['In','Out','Str'],
+                          'Outcomes': ['Cmp', 'Off', 'Blocks']
+                         ]
+        'Possession': ['Touches': ['Def 3rd', 'Mid 3rd', 'Att 3rd', 'Att Pen', 'Live'],
+                       'Take-Ons': ['Att', 'Succ', 'Succ%', 'Tkld', 'Tkld%'],
+                       'Carries': ['Carries','TotDist','PrgDist','PrgC','1/3','CPA','Mis','Dis'],
+                       'Receiving': ['Rec','PrgR']
+                      ]
+        'Shooting': ['Standard': ['Gls','Sh','SoT','SoT%','G/Sh','G/SoT','Dist','FK','PK','PKatt'],
+                     'Expected': ['xG','npxG','npxG/Sh','G-xG','np:G-xG']
+                    ]
+        'Keeper': ['Performance': ['SoTA', 'GA', 'Saves', 'Save%', 'CS', 'PSxG', 'PSxG+/-'],
+                   #'Penalty Kicks': ['PKatt', 'PKA', 'PKsv', 'PKm'],
+                   'Launched': ['Cmp', 'Att', 'Cmp%'],
+                   'Passes': ['Att', 'Thr', 'Launch%', 'AvgLen'],
+                   'Goal Kicks': ['Att', 'Launch%', 'AvgLen'],
+                   'Crosses': ['Opp', 'Stp', 'Stp%'],
+                   'Sweeper': ['#OPA', 'AvgDist']
+                  ]
+
 datasets:
-        #["match_data_EPL_to_predict.csv"]
-        ["match_data_BundesLiga.csv", "match_data_EPL.csv", "match_data_LaLiga.csv", "match_data_Ligue1.csv", "match_data_SerieA.csv"]
+    ["match_data_EPL_more_vars.csv",
+     "match_data_SerieA_more_vars.csv",
+     "match_data_Ligue1_more_vars.csv",
+     "match_data_BundesLiga_more_vars.csv",
+     "match_data_LaLiga_more_vars.csv"
+    ]
 
 filters:
     "comp=='Premier League' or comp=='Bundesliga' or comp=='Serie A' or comp=='Ligue 1' or comp=='La Liga'"

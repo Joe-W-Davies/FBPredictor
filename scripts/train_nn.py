@@ -3,10 +3,11 @@ import argparse
 import yaml
 import pandas as pd
 import numpy as np
-import xgboost as xgb
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import TimeSeriesSplit, RandomizedSearchCV
+from sklearn.preprocessing import StandardScaler
 from scipy.stats import uniform
+
 
 from TrainUtils import (
     change_dtypes, 
@@ -24,9 +25,14 @@ from PlotUtils import (
     plot_confusion_matrix,
     plot_output_score,
     plot_shaps,
+    plot_loss
 )
 
-from BorutaShap import BorutaShap
+import torch 
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+from NN import FFNet
 
 
 def main(options):
@@ -42,6 +48,8 @@ def main(options):
         n_days_lag = config['n_days_lag']
         n_days_rolling = config['n_days_rolling']
 
+
+
     dfs = []
     for df_name in datasets:
         dfs.append( pd.read_csv(f"data/leagues/{df_name}", index_col=0) )
@@ -51,7 +59,6 @@ def main(options):
     #data cleaning and filtering
     df = df.query(filters)
     #df = df.dropna(how='all')
-    #drop if more than half of rows are NaN
     df = df.dropna(thresh=int(df.shape[1]/5)) 
     df = change_dtypes(df)
     col_names = []
@@ -126,92 +133,100 @@ def main(options):
     x_test  = df[df['date']>'2022-08-01'][final_train_vars] 
     y_test  = df[df['date']>'2022-08-01']['y_true']
 
+    #NN stuff
+    #standardize inputs
+    ss = StandardScaler()
+    x_train = ss.fit_transform(x_train)
+    x_test = ss.transform(x_test)
+   
 
-    if options.hp_opt:
+    #convert to tensor
+    x_train = torch.tensor(x_train, dtype=torch.float32)
+    y_train = torch.tensor(y_train.values, dtype=torch.long)
+    x_test = torch.tensor(x_test, dtype=torch.float32)
+    y_test = torch.tensor(y_test.values, dtype=torch.long)
 
-        params = {
-            'learning_rate': uniform(0.01, 0.3),
-            'max_depth': range(2, 6),
-            'n_estimators': range(10, 100, 5),
-            'lambda': uniform(0.5, 10),
-        }
+    train_dataset = TensorDataset(x_train,y_train)
+    test_dataset = TensorDataset(x_test,y_test)
+
+    #train model
+    input_size = len(final_train_vars)
+    hidden_1 = 20
+    hidden_2 = 10
+    num_classes = len(df['y_true'].unique())
+    dropout_prob = 0.2
+    learning_rate = 0.01
+    batch_size = 256
+    num_epochs = 10
+
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size)
+    
+    model = FFNet(input_size, hidden_1, hidden_2, num_classes, dropout_prob)
+    print(f'Number of trainable params: {sum([p.numel() for p in model.parameters() if p.requires_grad])}')
+    critereon = nn.CrossEntropyLoss()
+    optimiser = optim.Adam(model.parameters(), lr=learning_rate)
+    scheduler = optim.lr_scheduler.StepLR(optimiser, step_size=1, gamma=0.9)
+
+   
+    train_loss_epochs = []
+    test_loss_epochs = []
+    for epoch in range(num_epochs):
+        model.train()
+
+        train_loss = 0
+        for x_batch_train, y_batch_train in train_loader:
+            preds = model(x_batch_train)
+            loss = critereon(preds, y_batch_train)
+            optimiser.zero_grad()
+            loss.backward()
+            optimiser.step()
+            train_loss += loss.item()
         
-        # Set up a time series cross-validation 
-        ts_cv = TimeSeriesSplit(n_splits=3)
-        clf = xgb.XGBClassifier(objective='multi:softprob')
-        
-        grid_search = RandomizedSearchCV(
-            clf,
-            params,
-            cv=ts_cv,
-            scoring='accuracy',
-            #n_iter=500,
-            n_iter=100,
-            verbose=3
-        )
-        
-        grid_search.fit(x_train, y_train)
-        train_params = grid_search.best_params_
-        print(f'best parameters: {train_params}')
-        clf = xgb.XGBClassifier(**train_params)
-    
-    else:
-        #chose reasonable parameters and train with them
-        #train_params = {'n_estimators':30, 'eta':0.1, 'max_depth':3}
-        #train_params = {'n_estimators':30, 'eta':0.01, 'max_depth':3, 'lambda':2}
-        train_params = {'n_estimators':100, 'eta':0.01, 'max_depth':5, 'lambda':2}
-        clf = xgb.XGBClassifier(
-            objective='multi:softprob', 
-            **train_params
-        )
+        avg_train_loss = train_loss/len(train_loader)
+        train_loss_epochs.append(avg_train_loss)
+        if epoch%10==0:
+            print(f'train loss at epoch {epoch} is: {avg_train_loss}')
 
-    if options.feature_select:
-        final_train_vars = BorutaShap(
-            x_train, 
-            y_train, 
-            final_train_vars, 
-            np.ones_like(y_train), 
-            i_iters=2, 
-            tolerance=0.1, 
-            max_vars_removed=int(0.8*len(running_features)), 
-            n_trainings=20, 
-            train_params=train_params
-        )()
-        x_train = x_train[final_train_vars]
-        x_test = x_test[final_train_vars]
+        model.eval()
+        test_loss = 0
+        with torch.no_grad():
+            for x_batch_test, y_batch_test in test_loader:
+                preds = model(x_batch_test)
+                loss = critereon(preds, y_batch_test)
+                test_loss += loss.item()
 
-    clf.fit(x_train,y_train)
+        avg_test_loss = test_loss/len(test_loader)
+        test_loss_epochs.append(avg_test_loss)
+        if epoch%10==0:
+            print(f'test loss at epoch {epoch} is: {avg_test_loss}')
+        scheduler.step()
+ 
 
-    
-    #predict probs
-    y_pred_train = clf.predict_proba(x_train)[:,1:].ravel() 
-    y_pred_test = clf.predict_proba(x_test)[:,1:].ravel()
-    
-    #baseline_roc = roc_auc_score(y_test, x_test['venue'])
-    #print(f'baseline roc_score {baseline_roc}')
-    #print(f'train roc_score: {roc_auc_score(y_train, y_pred_train)}')
-    #print(f'test roc_score: {roc_auc_score(y_test, y_pred_test)}')
-    
-    print()
-    
-    #predict classes
-    #baseline_acc = accuracy_score(y_test, x_test['venue'])
-    #print(f'baseline accuracy {baseline_acc}')
-    y_pred_train_class = clf.predict(x_train) 
-    y_pred_test_class = clf.predict(x_test)
+
+    #get accuracy
+    model.eval()
+    with torch.no_grad():
+        y_pred_train = model(x_train).detach().numpy()
+        y_pred_train_class = np.argmax(y_pred_train,axis=1)
+
+        y_pred_test = model(x_test).detach().numpy()
+        y_pred_test_class = np.argmax(y_pred_test,axis=1)
+        print(y_pred_test)
+        print(y_pred_test_class)
+
+
+
     print(f'train accuracy: {accuracy_score(y_train, y_pred_train_class)}')
     print(f'test accuracy: {accuracy_score(y_test, y_pred_test_class)}')
 
-
     #save model
-    if options.save_model:
-        bstr = clf.get_booster()
-        bstr.save_model('models/model_three_c.json')
-        print ("Saved classifier as: models/model_three_c.json")
+    if options.save_model: pass
 
     #make some plots
     #plot_roc(clf, y_train, y_pred_train, y_test, y_pred_test)
     plot_confusion_matrix(y_test, y_pred_test_class)
+    plot_loss(num_epochs, train_loss_epochs, test_loss_epochs)
     #plot_output_score(y_test, y_pred_test)
     #plot_shaps(clf, x_test, final_train_vars)
    

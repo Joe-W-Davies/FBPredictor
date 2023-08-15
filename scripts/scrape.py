@@ -25,8 +25,9 @@ def main(options):
         total_df = []
         for year in years:
         
-            print(f'scraping data from: {year}')
-            data = requests.get(web_page)
+            print(f'Scraping data from: {str(year)}-{str(year+1)}')
+            web_page_year = web_page.replace('!YEAR!',f'{str(year)}-{str(year+1)}')
+            data = requests.get(web_page_year)
             soup = BeautifulSoup(data.text, 'lxml')
             
             # filter HTML to to get the main standings table (syntax is: html_tag.class)
@@ -40,7 +41,7 @@ def main(options):
                 team_name =  tu.split('/')[-1].replace('-Stats','')
                 print(f"\nScraping {team_name} Stats")
                 match_data = requests.get(tu) 
-                time.sleep(6) 
+                time.sleep(5) 
                 
                 print('Scraping match outcomes data from:')
                 print(tu)
@@ -77,16 +78,26 @@ def main(options):
                 team_data_df['team'] = team_name
                 team_data_df['year'] = year
                 total_df.append(team_data_df)
+
+            with open(
+                    f'data/per_year/match_data_{league_name}_more_vars_year_{year}.csv', 
+                    'w+', 
+                    encoding = 'utf-8-sig'
+            ) as f:
+                yr_df = pd.concat(total_df)
+                yr_df.columns = [c.lower() for c in yr_df.columns]
+                yr_df = yr_df.query(f'year=={year}')
+                yr_df.to_csv(f)
     
             #go back to previous year url
             previous_season = soup.select("a.prev")[0].get("href")
-            web_page = f"https://fbref.com{previous_season}"
+            #web_page = f"https://fbref.com{previous_season}"
         
         total_df = pd.concat(total_df)
         total_df.columns = [c.lower() for c in total_df.columns]
 
         with open(
-                f'data/match_data_{league_name}_more_vars.csv', 
+                f'data/leagues/match_data_{league_name}_more_vars.csv', 
                 'w+', 
                 encoding = 'utf-8-sig'
         ) as f:

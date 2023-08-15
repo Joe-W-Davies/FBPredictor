@@ -1,17 +1,80 @@
 years: 
-        [2022] #, 2021, 2020, 2019, 2018, 2017]
+        #[2022, 2021, 2020, 2019, 2018, 2017]
+        [2022, 2021, 2020, 2019]
+        #[2018, 2017]
+        #[2017]
 
 league_links: 
-        'EPL': 'https://fbref.com/en/comps/9/Premier-League-Stats' 
-        #'BundesLiga': 'https://fbref.com/en/comps/20/Bundesliga-Stats'
-        #'LaLiga': 'https://fbref.com/en/comps/12/La-Liga-Seasons'
+        #'EPL': 'https://fbref.com/en/comps/9/!YEAR!/!YEAR!-Premier-League-Stats' 
+        #'SerieA': 'https://fbref.com/en/comps/11/!YEAR!/!YEAR!-Serie-A-Stats'
+        #'Ligue1': 'https://fbref.com/en/comps/13/!YEAR!/!YEAR!-Ligue-1-Stats'
+        #'BundesLiga': 'https://fbref.com/en/comps/20/!YEAR!/!YEAR!-Bundesliga-Stats'
+        'LaLiga': 'https://fbref.com/en/comps/12/!YEAR!/!YEAR!-La-Liga-Stats'
+
+        #no longer working since 2023-2024 data was added!
+        #'EPL': 'https://fbref.com/en/comps/9/Premier-League-Stats' 
         #'SerieA': 'https://fbref.com/en/comps/11/Serie-A-Seasons'
         #'Ligue1': 'https://fbref.com/en/comps/13/Ligue-1-Stats'
+        #'BundesLiga': 'https://fbref.com/en/comps/20/Bundesliga-Stats'
+        #'LaLiga': 'https://fbref.com/en/comps/12/La-Liga-Seasons'
 
 match_vars: 
         ['Date', 'Time', 'Comp', 'Round', 'Day', 'Venue', 'Opponent', 'Formation','GF','GA','Result']
 
 extra_tables_to_scrape:
-        'Possession': ['Date','Poss','Touches','Def Pen','Def 3rd', 'Mid 3rd', 'Att 3rd', 'Att Pen', 'Live']
-        'Passing': ['Date','TotDist','PrgDist','Ast','xAG','xA','KP','1/3','PPA','CrsPA','PrgP'] #'Cmp','Att','Cmp%' are repeated 3 times in table so ignore for now
-        'Shooting': ['Date','Gls','Sh','SoT','SoT%','G/Sh','G/SoT','Dist','FK','PK','PKatt','xG','npxG','npxG/Sh','G-xG','np:G-xG']
+        'GCA': ['SCA Types': ['SCA','PassLive','PassDead','TO','Sh','Fld','Def'],
+                                   'GCA Types': ['GCA','PassLive','PassDead','TO','Sh','Fld','Def'],
+                                  ]
+        'Misc': ['Performance': ['CrdY','CrdR','2CrdY','Fls','Fld','Off','Int','TklW','Recov'],
+                 'Aerial Duels': ['Won','Lost','Won%']
+                ]
+        'Defense': ['Tackles': ['Tkl', 'TklW','Def 3rd','Mid 3rd','Att 3rd'],
+                              'Challenges': ['Tkl','Att','Tkl%','Lost'],
+                              'Blocks': ['Blocks','Sh','Pass'],
+                              'Unnamed: 22_level_0': ['Int'], 
+                              'Unnamed: 23_level_0': ['Tkl+Int'], 
+                              'Unnamed: 24_level_0': ['Clr'], 
+                              'Unnamed: 25_level_0': ['Err'], 
+                             ]
+        'Passing': ['Total': ['Cmp', 'Att', 'Cmp%','TotDist','PrgDist'], 
+                   'Short': ['Cmp','Att', 'Cmp%'],
+                   'Medium': ['Cmp', 'Att', 'Cmp%'],
+                   'Long': ['Cmp','Att','Cmp%'],
+                   'Unnamed: 24_level_0': ['Ast'],
+                   'Unnamed: 25_level_0': ['xAG'],
+                   'Unnamed: 26_level_0': ['xA'],
+                   'Unnamed: 27_level_0': ['KP'],
+                   'Unnamed: 28_level_0': ['1/3'],
+                   'Unnamed: 29_level_0': ['PPA'],
+                   'Unnamed: 30_level_0': ['CrsPA'],
+                   'Unnamed: 31_level_0': ['PrgP'],
+                   ]
+        'Passing_Types': ['Pass Types': ['Live', 'Dead','FK','TB','Sw','Crs','TI','CK'],
+                          'Corner Kicks': ['In','Out','Str'],
+                          'Outcomes': ['Cmp', 'Off', 'Blocks']
+                         ]
+        'Possession': ['Touches': ['Def 3rd', 'Mid 3rd', 'Att 3rd', 'Att Pen', 'Live'],
+                       'Take-Ons': ['Att', 'Succ', 'Succ%', 'Tkld', 'Tkld%'],
+                       'Carries': ['Carries','TotDist','PrgDist','PrgC','1/3','CPA','Mis','Dis'],
+                       'Receiving': ['Rec','PrgR']
+                      ]
+        'Shooting': ['Standard': ['Gls','Sh','SoT','SoT%','G/Sh','G/SoT','Dist','FK','PK','PKatt'],
+                     'Expected': ['xG','npxG','npxG/Sh','G-xG','np:G-xG']
+                    ]
+        'Keeper': ['Performance': ['SoTA', 'GA', 'Saves', 'Save%', 'CS', 'PSxG', 'PSxG+/-'],
+                   #'Penalty Kicks': ['PKatt', 'PKA', 'PKsv', 'PKm'],
+                   'Launched': ['Cmp', 'Att', 'Cmp%'],
+                   'Passes': ['Att', 'Thr', 'Launch%', 'AvgLen'],
+                   'Goal Kicks': ['Att', 'Launch%', 'AvgLen'],
+                   'Crosses': ['Opp', 'Stp', 'Stp%'],
+                   'Sweeper': ['#OPA', 'AvgDist']
+                  ]
+
+
+
+        #'Passing': ['Date','TotDist','PrgDist','Ast','xAG','xA','KP','1/3','PPA','CrsPA','PrgP'] #'Cmp','Att','Cmp%' are repeated 3 times in table so ignore for now. Similar goes for later tables too
+        #'Possession': ['Date','Poss','Touches','Def Pen','Def 3rd', 'Mid 3rd', 'Att 3rd', 'Att Pen', 'Live']
+        #'Shooting': ['Date','Gls','Sh','SoT','SoT%','G/Sh','G/SoT','Dist','FK','PK','PKatt','xG','npxG','npxG/Sh','G-xG','np:G-xG']
+        #'Keeper': ['Date','SoTA','Saves','Save%', 'CS', 'PSxG', 'PSxG+/-']
+        #'Defensive Actions': ['Date', 'TklW', 'Blocks','Int','Tkl+Int','Clr','Err']
+        #'Miscellaneous Stats': ['Date', 'Crs', 'Recov', 'Won%']

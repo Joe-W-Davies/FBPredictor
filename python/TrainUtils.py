@@ -34,8 +34,10 @@ def change_dtypes(df: pd.DataFrame) -> pd.DataFrame:
 
     if 'date' in df.columns: df['date'] = pd.to_datetime(df['date'])
     if 'gf' in df.columns: 
+        df['gf'] = df['gf'].astype(str)
         df['gf'] = df['gf'].apply(fix_away_games)
     if 'ga' in df.columns: 
+        df['ga'] = df['ga'].astype(str)
         df['ga'] = df['ga'].apply(fix_away_games)
 
     return df

@@ -158,18 +158,33 @@ def plot_shaps(
 
     plt.rcParams.update({'text.usetex':'false'})
     plt.figure()
-    shap.plots.beeswarm(shap_values, show=False)
+    shap.plots.beeswarm(shap_values, max_display=50, show=False)
     plt.tight_layout()
     plt.savefig('plots/shapley_beeswarm.pdf', bbox_inches='tight')
     print(' --> Saved plot: plots/shapley_beeswarm.pdf')
     plt.close()
 
     plt.figure()
-    shap.plots.bar(shap_values, show=False)
+    shap.plots.bar(shap_values, max_display=50, show=False)
     plt.tight_layout()
     plt.savefig('plots/shapley_bar_chart.pdf', bbox_inches='tight')
     print(' --> Saved plot: plots/shapley_bar_chart.pdf')
     plt.close() 
+
+def plot_loss(
+    epochs: int,
+    train_losses: list,
+    test_losses: list,
+) -> None:
+
+    plt.figure()
+    plt.plot([i for i in range(epochs)], train_losses, label='Train')
+    plt.plot([i for i in range(epochs)], test_losses, label='Test')
+    plt.legend()
+    plt.savefig('plots/nn_losses.pdf')
+    print(' --> Saved plot: plots/nn_losses.pdf')
+    plt.close()
+
 
 def plot_returns(
     df: pd.DataFrame, 

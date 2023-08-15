@@ -44,11 +44,18 @@ def main(options):
     if options.league: df = df.query(f"comp=='{options.league}'")
     if options.year: df = df.query(f"year=={options.year}")
 
+    df = df.dropna(thresh=int(df.shape[1]/5)) 
     df = change_dtypes(df)
     df = create_time_features(df)
+    col_names = []
+    for k, list_level_map in train_vars_to_roll.items():
+        for dic in list_level_map:
+            for t_level, bottom_list in dic.items():
+                for b_level in bottom_list:
+                    col_names.append((t_level+b_level).lower())
+    train_vars_to_roll = col_names.copy()
 
     #add target column
-    #df['y_true'] = (df['result']=='W').astype('int8')
     df['y_true'] = df['result'].astype('category').cat.codes
     #FIXME: probs need to impute NA's as well since we did this in the training
 
@@ -78,10 +85,12 @@ def main(options):
     
     
     #drop any row with a null if backtesting
+    #pd.set_option('display.max_rows',None)
+    #print(df.isna().sum())
+    df = df.drop('Unnamed: 0', axis=1) #not even sure how this is created?`
     if options.bankroll: df = df.dropna(how='any')
     df = df.sort_values(['date'])
     df.index = range(df.shape[0])
-    
 
     #add opponnent info in
     df['opponent'] = df['opponent'].map(team_mapping)
@@ -100,7 +109,7 @@ def main(options):
     df = encode_features(df)
     
 
-    #only predict most recent match if not backtesting
+    #only predict most recent upcoming match if not backtesting
     current_date = datetime.today().strftime('%Y-%m-%d')
     if options.bankroll: df = df[df['date'] <= f'{current_date}']
     else: df = df[df['date'] >= f'{current_date}']
@@ -112,6 +121,7 @@ def main(options):
     print(f'loaded model from: {options.model}')
     final_train_vars = clf.feature_names
 
+
     if options.bankroll: 
         x_test  = df[final_train_vars] 
         d_test = xgb.DMatrix(x_test, feature_names=final_train_vars)
@@ -120,14 +130,14 @@ def main(options):
         df['draw_prob'] = probs[:, 0]
         df['lose_prob'] = probs[:, 1]
         df['win_prob'] =  probs[:, 2]
-        df['y_pred_class'] = np.argmax(clf.predict(d_test))
-        #print(df[['y_pred','result', 'y_true']])
+        df['y_pred_class'] = np.argmax(clf.predict(d_test), axis=1)
 
         df['win'] = np.select(
             [df['y_pred_class'].eq(df['y_true'])], 
             [1], 
             default=0
         )
+        print(df[['y_pred_class','result', 'y_true','win']])
 
         running_total = options.bankroll
         bankrupt = False
@@ -156,27 +166,21 @@ def main(options):
             kc =  prob - (numerator/best_odds)
             if kc<0: 
                 if i_row==0: 
-                    cum_return.append(0)
-                    continue
+                    cum_return.append(running_total)
                 else:
                     cum_return.append(cum_return[-1])
-                    continue
+                continue
                 
             
-            if options.fixed: 
-                bet_fixed = kc*options.bankroll
-            else: bet = kc*running_total
+            print(kc)
+            bet = kc*running_total
 
             if row['win']==1: 
-                if options.fixed: 
-                    running_total += bet_fixed*best_odds #no need to subtract stake as decimal odds
-                else: 
-                    running_total += bet*best_odds
+                print('win')
+                running_total += bet*best_odds
             else: 
-                if options.fixed: 
-                    running_total -= bet_fixed
-                else: 
-                    running_total -= bet
+                print('lost')
+                running_total -= bet
 
             cum_return.append(running_total)
             #print(f"kc: {kc} bet: {bet}, prob: {prob}, odds: {best_odds}") #debug
@@ -187,7 +191,7 @@ def main(options):
             #print()
             #if i_row>25: sys.exit(1)
             
-            if not options.fixed and running_total < 0: 
+            if running_total < 0: 
                 bankrupt=True
                 break
 
@@ -225,6 +229,5 @@ if __name__ == "__main__":
     opt_args.add_argument('-a','--add_odds', action='store_true',default=False)
     opt_args.add_argument('-b','--bankroll', action='store',default=False, type=float)
     opt_args.add_argument('-t','--threshold', action='store',default=False, type=float)
-    opt_args.add_argument('-f','--fixed', action='store_true',default=False)
     options=parser.parse_args()
     main(options)

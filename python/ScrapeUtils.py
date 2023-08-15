@@ -32,10 +32,8 @@ def get_extra_info(
         # need to make sure the a-tag even has a href attribute, and filter by shooting/possesion/etc links
         if l.get("href") and (f'all_comps/{table_type.lower()}/' in l.get("href")) and (l.get("href") is not None):
             print(f"http://fbref.com{l.get('href')}")
+            time.sleep(5)
             extra_data = requests.get(f"http://fbref.com{l.get('href')}")
-       
-            with open(f"data/html_debug_{table_type}.txt", "w") as fn: #debug
-                fn.write(extra_data.text) #debug
 
             #df = pd.read_html(extra_data.text, match=table_type)[0] 
             df = pd.read_html(extra_data.text)[0] 

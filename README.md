@@ -21,12 +21,11 @@ Example (GBDT) training command:
 python3 scripts/train.py -c configs/train_cfg.yaml (--feature_select) (--hp_opt) (-a)
 ```
 
-There are many features to train with - if you want to reduce them, try running with a modified Boruta-SHAP algo by adding the option `--feature_select`. To optimise the model hyperparameters, add the `--hp_opt` option. To add info on betting odds from [football-data.co.uk](https://www.football-data.co.uk), add the `-a` option.
-
+There are many features to train with - if you want to reduce them, try running with a modified Boruta-SHAP algo by adding the option `--feature_select`. To optimise the model hyperparameters, add the `--hp_opt` option. To add info on betting odds from [football-data.co.uk](https://www.football-data.co.uk), add the `-a` option. This will remove duplicate home/away games since the odds are recorded once per game.
 
 The current best test accuracy is: 67.5%.
 
-See the `three_class` branch for predicting draws as well. The accuracy for that classifier is around 53%.
+See the `three_class` branch for predicting draws as well. The accuracy for that classifier is around 55.2%. A neural network model current perform a little worse than a BDT.
 
 
 
@@ -49,9 +48,12 @@ Adding the `-b [ammount]` option backtests with the Kelly Critereon used as the 
 
 ### To-Do's: scraping
 * weigh up scraping more data v.s. not having expected-goals etc. for older years -[x] -> no real improvemnt (see `more_years` branch)
+* scrape tables where multiple columns have the same name [DONE]
+* scrape additional tables: Goalkeeping, Pass Types, Goal and Shot Creation, Defensive Actions, and Misc Stats
 * check if BundesLiga matches are somehow being scraped in EPL 
 
 ### To-Do's: model training
+* lag other features like the last opponents played (gives info about whether they lost to a difficult/easy team)
 * remove hard coding on train/test split date
 * Plot inputs and make correlation map (separate script?)
 * Try different models
