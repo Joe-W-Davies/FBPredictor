@@ -51,9 +51,11 @@ class ComplexRadar():
     def plot(self, data, *args, **kw):
         sdata = _scale_data(data, self.ranges)
         self.ax.plot(self.angle, np.r_[sdata, sdata[0]], *args, **kw)
+        self.ax.legend()
     def fill(self, data, *args, **kw):
         sdata = _scale_data(data, self.ranges)
         self.ax.fill(self.angle, np.r_[sdata, sdata[0]], *args, **kw)
+        self.ax.legend()
 
 
 
