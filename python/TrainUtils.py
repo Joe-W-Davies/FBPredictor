@@ -58,26 +58,43 @@ def create_time_features(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def encode_features(df: pd.DataFrame) -> pd.DataFrame:
+def encode_features(
+        df: pd.DataFrame, 
+) -> tuple[pd.DataFrame, set()]:
+
+    original_cols = set(df.columns)
 
     if 'formation' in df.columns: 
-        df['formation'] = df['formation'].astype('category').cat.codes
+        #df['formation'] = df['formation'].astype('category').cat.codes
+        df = pd.get_dummies(df, columns=['formation'])
+        #need to do this to prevent non-encoded variable being added back into feature set
+        original_cols.remove('formation')
     if 'venue' in df.columns: 
         df['venue'] = df['venue'].astype('category').cat.codes
 
-    #trickier because we have two columns that need encoding in the same way
     if ('team' in df.columns) and ('opponent' in df.columns): 
-        #keep str versions as well for prediction
-        df['team_str'] = df['team'].copy()
-        df['opponent_str'] = df['opponent'].copy()
+        #trickier because we have two columns that need encoding in the same way
+        ##keep str versions as well for prediction
+        #df['team_str'] = df['team'].copy()
+        #df['opponent_str'] = df['opponent'].copy()
 
-        encoder = LabelEncoder()
-        encoder.fit( pd.concat([ df['team'],df['opponent'] ]) )
-        df['team'] = encoder.transform(df['team'])
-        df['opponent'] = encoder.transform(df['opponent'])
+        #encoder = LabelEncoder()
+        #encoder.fit( pd.concat([ df['team'],df['opponent'] ]) )
+        #df['team'] = encoder.transform(df['team'])
+        #df['opponent'] = encoder.transform(df['opponent'])
+
+        #actually if you encode properly with one hot, this shouldn't be an issue:
+
+        #nominal_vars.remove('opponent')
+        #nominal_vars.remove('team')
+        #need to do this to prevent non-encoded variable being added back into feature set
+        df = pd.get_dummies(df, columns=['team','opponent'])
+        original_cols.remove('team')
+        original_cols.remove('opponent')
+        
+    encoded_cols = original_cols ^ set(df.columns)
    
-    
-    return df
+    return df, list(encoded_cols)
 
 
 

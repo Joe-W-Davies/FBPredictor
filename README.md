@@ -25,7 +25,7 @@ There are many features to train with - if you want to reduce them, try running 
 
 The current best test accuracy is: 67.5%.
 
-See the `three_class` branch for predicting draws as well. The accuracy for that classifier is around 55.2%. A neural network model current perform a little worse than a BDT.
+See the `three_class` branch for predicting draws as well. The accuracy for that classifier is around 55.2%. A neural network model currently perform a little worse than a BDT.
 
 
 
@@ -49,8 +49,9 @@ Adding the `-b [ammount]` option backtests with the Kelly Critereon used as the 
 ### To-Do's: scraping
 * weigh up scraping more data v.s. not having expected-goals etc. for older years -[x] -> no real improvemnt (see `more_years` branch)
 * scrape tables where multiple columns have the same name [DONE]
-* scrape additional tables: Goalkeeping, Pass Types, Goal and Shot Creation, Defensive Actions, and Misc Stats
-* check if BundesLiga matches are somehow being scraped in EPL 
+* scrape additional tables: Goalkeeping, Pass Types, Goal and Shot Creation, Defensive Actions, and Misc Stats [DONE]
+* Try keeping international matches to boost rows (will probs get filtered in merge anyway)
+* Try impute odds information which is currently unused due to many missing values
 
 ### To-Do's: model training
 * lag other features like the last opponents played (gives info about whether they lost to a difficult/easy team)

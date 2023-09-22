@@ -1,5 +1,6 @@
 nominal_vars : 
-        ['team','hours','day','opponent','formation', 'venue','days_since_game'] #might need to remove formation if can't get access to it for upcoming games
+        ['team','hours','day','opponent','venue','days_since_game'] #might need to remove formation if can't get access to it for upcoming games
+        #['team','hours','day','opponent','formation', 'venue','days_since_game'] #might need to remove formation if can't get access to it for upcoming games
 
 #other odds vars to add in alongside home win, away win, and draw. Note not available for all matches (esp not for 2019 and before),
 # and no real improvement from using them so just leave as empty list now

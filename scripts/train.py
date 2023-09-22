@@ -28,6 +28,8 @@ from PlotUtils import (
 
 from BorutaShap import BorutaShap
 
+pd.set_option('display.max_rows',100)
+pd.set_option('display.max_columns',100)
 
 def main(options):
     #unpack config
@@ -51,7 +53,7 @@ def main(options):
     #data cleaning and filtering
     df = df.query(filters)
     #df = df.dropna(how='all')
-    #drop if more than half of rows are NaN
+    #drop if more than 1/5 of col entries are NaN
     df = df.dropna(thresh=int(df.shape[1]/5)) 
     df = change_dtypes(df)
     col_names = []
@@ -114,10 +116,13 @@ def main(options):
         df, home_odds, away_odds, draw_odds, more_odds_vars = add_odds(df, team_mapping, more_odds_vars)
         nominal_vars = nominal_vars + home_odds + away_odds + draw_odds + more_odds_vars
 
-    df = encode_features(df)
+    df, encoded_cols = encode_features(df)
+    #these are encoded now so no need from string reps
+    nominal_vars.remove('opponent')
+    nominal_vars.remove('team')
     
     #train/test split
-    final_train_vars = nominal_vars + running_features + [v+'_opp' for v in running_features if v not in nominal_vars]
+    final_train_vars = nominal_vars + running_features + encoded_cols + [v+'_opp' for v in running_features if v not in nominal_vars]
 
     print(f'training with {len(final_train_vars)} variables')
     
@@ -125,7 +130,6 @@ def main(options):
     y_train = df[df['date']<'2022-08-01']['y_true']
     x_test  = df[df['date']>'2022-08-01'][final_train_vars] 
     y_test  = df[df['date']>'2022-08-01']['y_true']
-
 
     if options.hp_opt:
 
@@ -158,8 +162,8 @@ def main(options):
     else:
         #chose reasonable parameters and train with them
         #train_params = {'n_estimators':30, 'eta':0.1, 'max_depth':3}
-        #train_params = {'n_estimators':30, 'eta':0.01, 'max_depth':3, 'lambda':2}
-        train_params = {'n_estimators':100, 'eta':0.01, 'max_depth':5, 'lambda':2}
+        train_params = {'n_estimators':30, 'eta':0.01, 'max_depth':3, 'lambda':2}
+        #train_params = {'n_estimators':100, 'eta':0.01, 'max_depth':5, 'lambda':2}
         clf = xgb.XGBClassifier(
             objective='multi:softprob', 
             **train_params
