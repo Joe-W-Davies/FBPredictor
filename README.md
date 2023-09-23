@@ -25,7 +25,7 @@ There are many features to train with - if you want to reduce them, try running 
 
 The current best test accuracy is: 67.5%.
 
-See the `three_class` branch for predicting draws as well. The accuracy for that classifier is around 55.2%. A neural network model currently perform a little worse than a BDT.
+See the `three_class` branch for predicting draws as well. The best test accuracy for that classifier is around 55.2%. A neural network model currently perform a little worse than a BDT.
 
 
 
@@ -55,6 +55,7 @@ Adding the `-b [ammount]` option backtests with the Kelly Critereon used as the 
 
 ### To-Do's: model training
 * lag other features like the last opponents played (gives info about whether they lost to a difficult/easy team)
+* target encode teams
 * remove hard coding on train/test split date
 * Plot inputs and make correlation map (separate script?)
 * Try different models

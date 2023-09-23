@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import TargetEncoder
 import glob 
 
 class MissingDict(dict):
@@ -59,38 +59,47 @@ def create_time_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def encode_features(
-        df: pd.DataFrame, 
+        df: pd.DataFrame,
+        target_encode: bool=False
 ) -> tuple[pd.DataFrame, set()]:
 
     original_cols = set(df.columns)
 
-    if 'formation' in df.columns: 
-        #df['formation'] = df['formation'].astype('category').cat.codes
-        df = pd.get_dummies(df, columns=['formation'])
-        #need to do this to prevent non-encoded variable being added back into feature set
-        original_cols.remove('formation')
     if 'venue' in df.columns: 
         df['venue'] = df['venue'].astype('category').cat.codes
 
+    if 'formation' in df.columns: 
+        if target_encode==True:
+            y_onehot = pd.get_dummies(df['y_true'])
+            class_names=y_onehot.columns  #names of onehot encoded columns
+
+            for class_ in class_names:
+                enc = TargetEncoder(smooth='auto', cv=3)
+                x_trans = enc.fit_transform(df['formation'],y_onehot[class_]) #convert all categorical 
+                new_cols = [f"{col}_enc_class_{class_}" for col in enc.feature_names_in_]
+                df = pd.concat([df, pd.DataFrame(x_trans, columns=new_cols)], axis=1)
+
+        else:
+            df = pd.get_dummies(df, columns=['formation'])
+            #need to do this to prevent non-encoded variable being added back into feature set
+            original_cols.remove('formation')
+
     if ('team' in df.columns) and ('opponent' in df.columns): 
-        #trickier because we have two columns that need encoding in the same way
-        ##keep str versions as well for prediction
-        #df['team_str'] = df['team'].copy()
-        #df['opponent_str'] = df['opponent'].copy()
+        if target_encode==True:
+            y_onehot = pd.get_dummies(df['y_true'])
+            class_names=y_onehot.columns  #names of onehot encoded columns
 
-        #encoder = LabelEncoder()
-        #encoder.fit( pd.concat([ df['team'],df['opponent'] ]) )
-        #df['team'] = encoder.transform(df['team'])
-        #df['opponent'] = encoder.transform(df['opponent'])
+            for class_ in class_names:
+                enc = TargetEncoder(smooth='auto', cv=3)
+                x_trans = enc.fit_transform(df[['team','opponent']],y_onehot[class_]) #convert all categorical 
+                new_cols = [f"{col}_enc_class_{class_}" for col in enc.feature_names_in_]
+                df = pd.concat([df, pd.DataFrame(x_trans, columns=new_cols)], axis=1)
 
-        #actually if you encode properly with one hot, this shouldn't be an issue:
-
-        #nominal_vars.remove('opponent')
-        #nominal_vars.remove('team')
-        #need to do this to prevent non-encoded variable being added back into feature set
-        df = pd.get_dummies(df, columns=['team','opponent'])
-        original_cols.remove('team')
-        original_cols.remove('opponent')
+        else:
+            df = pd.get_dummies(df, columns=['team','opponent'])
+            #need to do this to prevent non-encoded variable being added back into feature set
+            original_cols.remove('team')
+            original_cols.remove('opponent')
         
     encoded_cols = original_cols ^ set(df.columns)
    

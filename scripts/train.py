@@ -1,6 +1,7 @@
 from datetime import datetime
 import argparse
 import yaml
+from warnings import simplefilter 
 import pandas as pd
 import numpy as np
 import xgboost as xgb
@@ -28,9 +29,6 @@ from PlotUtils import (
 
 from BorutaShap import BorutaShap
 
-pd.set_option('display.max_rows',100)
-pd.set_option('display.max_columns',100)
-
 def main(options):
     #unpack config
     with open(options.config, 'r') as config_file:
@@ -49,7 +47,8 @@ def main(options):
         dfs.append( pd.read_csv(f"data/leagues/{df_name}", index_col=0) )
     df = pd.concat(dfs)
 
-    
+    simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
+
     #data cleaning and filtering
     df = df.query(filters)
     #df = df.dropna(how='all')
@@ -75,11 +74,12 @@ def main(options):
     #add features
     running_features = set()
 
-
-    #add lagged features for last 5 days
+    #add lagged features for last X days
+    print(f'Creating features for last {n_days_lag} lags')
     df, running_features = add_lags(df, n_days_lag, running_features)
 
     #add rolled mean and median features for the previous n_days
+    print(f'Creating rolled features over previous {n_days_rolling} matches')
     for day in n_days_rolling:
         df, running_features = add_rolling_vars(
             df, 
@@ -90,6 +90,7 @@ def main(options):
      
     
     #add expanded mean features
+    print(f'Creating expanding means')
     df, running_features = add_expanded_vars(
         df, 
         running_features, 
@@ -116,8 +117,8 @@ def main(options):
         df, home_odds, away_odds, draw_odds, more_odds_vars = add_odds(df, team_mapping, more_odds_vars)
         nominal_vars = nominal_vars + home_odds + away_odds + draw_odds + more_odds_vars
 
-    df, encoded_cols = encode_features(df)
-    #these are encoded now so no need from string reps
+    df, encoded_cols = encode_features(df, target_encode=True)
+    #these are encoded now so no need to use string reps
     nominal_vars.remove('opponent')
     nominal_vars.remove('team')
     
