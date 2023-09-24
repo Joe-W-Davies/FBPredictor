@@ -75,7 +75,7 @@ def encode_features(
 
             for class_ in class_names:
                 enc = TargetEncoder(smooth='auto', cv=3)
-                x_trans = enc.fit_transform(df['formation'],y_onehot[class_]) #convert all categorical 
+                x_trans = enc.fit_transform(df[['formation']],y_onehot[class_]) #convert all categorical 
                 new_cols = [f"{col}_enc_class_{class_}" for col in enc.feature_names_in_]
                 df = pd.concat([df, pd.DataFrame(x_trans, columns=new_cols)], axis=1)
 

@@ -53,6 +53,7 @@ class BorutaShap(object):
         self.tolerance           = tolerance
         self.keep_shadows        = keep_shadows
         self.train_params        = train_params
+        self.multiclass          = y_train.nunique()>2
 
         self.p_hit = 0.5
         binom_mean = n_trainings * self.p_hit
@@ -109,7 +110,7 @@ class BorutaShap(object):
         Run classifier training for n_iters. Return the importances for each feature averaged over n_iters.
         We run this multiple times since the feature importance ranking is not deterministic.
         Note we need to set up the dict first with all real + shadow features still being considered,
-        since the faetures importances for some features are zero and hence do not get returned; we then get
+        since the features importances for some features are zero and hence do not get returned; we then get
         keyErrors when trying to compare faetures later!
         '''
 
@@ -122,14 +123,26 @@ class BorutaShap(object):
             #create shadow set with remaining features
             x_mirror = self.create_shadow()
             print ('training classifier for iteration: {}'.format(n_iter))
-            clf = xg.XGBClassifier(objective='binary:logistic', **(self.train_params))
+            if self.multiclass:
+                clf = xg.XGBClassifier(objective='multi:softprob', **(self.train_params))
+            else:
+                clf = xg.XGBClassifier(objective='binary:logistic', **(self.train_params))
             clf.fit(x_mirror, self.y_train, sample_weight=self.w_train)
             print ('done')
 
             #n_importance = clf.get_booster().get_score(importance_type='gain')
             explainer = shap.Explainer(clf)
-            shap_values = explainer(x_mirror)
-            vals = np.abs(shap_values.values).mean(0)
+            #shap_values = explainer(x_mirror)
+            shap_values = explainer.shap_values(x_mirror)
+
+            if self.multiclass:
+                class_shaps = []
+                for shaps_class_i in shap_values:
+                    class_shaps.append( np.abs(shaps_class_i).mean(0) )
+                stacked_shaps = np.stack(class_shaps, axis=0)
+                vals = np.mean(stacked_shaps, axis=0)
+            else:
+                vals = np.abs(shap_values.values).mean(0)
             n_importance = {key:value for (key,value) in zip(x_mirror.columns,vals)}
 
 
@@ -144,7 +157,6 @@ class BorutaShap(object):
                 if var in n_importance.keys(): 
                     if n_importance[var] > best_shadow_imp: var_hits[var] += 1
 
-        print (var_hits)
 
         return var_hits
 

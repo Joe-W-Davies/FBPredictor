@@ -154,22 +154,36 @@ def plot_shaps(
 
     #shap plots
     explainer = shap.Explainer(clf)
-    shap_values = explainer(pd.DataFrame(x_test, columns=train_vars))
+    shap_values = explainer.shap_values(pd.DataFrame(x_test, columns=train_vars))
+    #shap_values = explainer(pd.DataFrame(x_test, columns=train_vars))
 
     plt.rcParams.update({'text.usetex':'false'})
     plt.figure()
-    shap.plots.beeswarm(shap_values, max_display=50, show=False)
+    shap.summary_plot(
+        shap_values, 
+        x_test,
+        plot_type="bar", 
+        feature_names = x_test.columns
+    )
     plt.tight_layout()
-    plt.savefig('plots/shapley_beeswarm.pdf', bbox_inches='tight')
-    print(' --> Saved plot: plots/shapley_beeswarm.pdf')
+    plt.savefig('plots/shapley_three_class.pdf', bbox_inches='tight')
+    print(' --> Saved plot: plots/shapley_three_class.pdf')
     plt.close()
 
-    plt.figure()
-    shap.plots.bar(shap_values, max_display=50, show=False)
-    plt.tight_layout()
-    plt.savefig('plots/shapley_bar_chart.pdf', bbox_inches='tight')
-    print(' --> Saved plot: plots/shapley_bar_chart.pdf')
-    plt.close() 
+    #plt.rcParams.update({'text.usetex':'false'})
+    #plt.figure()
+    #shap.plots.beeswarm(shap_values, max_display=50, show=False)
+    #plt.tight_layout()
+    #plt.savefig('plots/shapley_beeswarm.pdf', bbox_inches='tight')
+    #print(' --> Saved plot: plots/shapley_beeswarm.pdf')
+    #plt.close()
+
+    #plt.figure()
+    #shap.plots.bar(shap_values, max_display=50, show=False)
+    #plt.tight_layout()
+    #plt.savefig('plots/shapley_bar_chart.pdf', bbox_inches='tight')
+    #print(' --> Saved plot: plots/shapley_bar_chart.pdf')
+    #plt.close() 
 
 def plot_loss(
     epochs: int,
@@ -188,8 +202,8 @@ def plot_loss(
 
 def plot_returns(
     df: pd.DataFrame, 
-    split_leagues=False, 
-    period='2W'
+    split_leagues: bool=False, 
+    period: str='2W'
 ) -> None:
 
     fig  = plt.figure()
